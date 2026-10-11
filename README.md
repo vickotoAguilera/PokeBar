@@ -8,6 +8,7 @@
 ![Licence](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
 ![Pokédex](https://img.shields.io/badge/Pok%C3%A9dex-1%2C025_Especies-EF4444?style=for-the-badge&logo=pokemon)
 ![GBA Box](https://img.shields.io/badge/PC_Box-GBA_Retro-10B981?style=for-the-badge)
+![AI Agents](https://img.shields.io/badge/AI_Agents-Gemini%20%7C%20OpenCode%20Ready-8B5CF6?style=for-the-badge)
 
 **Tu Mascota Virtual Pokémon y Compañero de Escritorio para Gamers y Programadores.**  
 *Convierte tu actividad diaria en la PC, líneas de código y tokens en una experiencia viva: incuba huevos, captura Pokémon salvajes, evoluciona a tu equipo y combate en un estadio flotante en tiempo real.*
