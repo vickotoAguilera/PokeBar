@@ -10,7 +10,7 @@
 ![GBA Box](https://img.shields.io/badge/PC_Box-GBA_Retro-10B981?style=for-the-badge)
 ![AI Agents](https://img.shields.io/badge/AI_Agents-Gemini%20%7C%20OpenCode%20Ready-8B5CF6?style=for-the-badge)
 
-[![Descargar para Windows](https://img.shields.io/badge/Descargar_PokeBar_v1.0.0-Instalador_.EXE-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/vickotoAguilera/PokeBar/releases/tag/v1.0.0)
+[![Descargar para Windows](https://img.shields.io/badge/Descargar_PokeBar-Instalador_.EXE-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/vickotoAguilera/PokeBar/releases/latest)
 
 **Tu Mascota Virtual Pokémon y Compañero de Escritorio para Gamers y Programadores.**  
 *Convierte tu actividad diaria en la PC, líneas de código y tokens en una experiencia viva: incuba huevos, captura Pokémon salvajes, evoluciona a tu equipo y combate en un estadio flotante en tiempo real.*
@@ -390,7 +390,7 @@ PokeBar cuenta con un sistema integrado de detección y descarga de versiones di
 ## Instalación y Puesta en Marcha
 
 ### Método 1: Instalador Autónomo Windows (.exe) — Recomendado
-Descarga directa para jugadores: **[Descargar PokeBar v1.0.0 para Windows (.EXE)](https://github.com/vickotoAguilera/PokeBar/releases/tag/v1.0.0)**
+Descarga directa para jugadores: **[Descargar PokeBar para Windows (.EXE)](https://github.com/vickotoAguilera/PokeBar/releases/latest)**
 
 #### ¿Qué hace este instalador autónomo?
 * **Entorno 100% Embebido:** Incluye internamente el motor de Electron (Chromium + Node.js) y las librerías nativas de base de datos (`better-sqlite3`) precompiladas para Windows 10 y 11 (64-bit).
@@ -403,7 +403,7 @@ Descarga directa para jugadores: **[Descargar PokeBar v1.0.0 para Windows (.EXE)
 
 #### Pasos de Instalación:
 1. Descarga el archivo instalador oficial desde la sección de Releases:
-   * **[PokeBar Setup 1.0.0.exe](https://github.com/vickotoAguilera/PokeBar/releases/tag/v1.0.0)**
+   * **[Descargar PokeBar Setup (.exe) - Última Versión](https://github.com/vickotoAguilera/PokeBar/releases/latest)**
 2. Haz doble clic en el instalador descargado y sigue las instrucciones del asistente en pantalla.
 3. Al finalizar, haz doble clic en el icono de **PokeBar** en tu escritorio para iniciar tu aventura de inmediato.
 4. Para desinstalarlo en el futuro, puedes hacerlo limpiamente desde "Configuración > Aplicaciones instaladas" de Windows.

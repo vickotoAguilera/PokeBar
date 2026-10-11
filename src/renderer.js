@@ -886,7 +886,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (manual && btnCheckUpdates) btnCheckUpdates.disabled = false;
 
             if (res && res.success) {
-                if (settingAppVersionText) settingAppVersionText.innerText = `Actualizaciones (${res.currentVersion || 'v1.0.0'})`;
+                const formattedVer = res.currentVersion ? (String(res.currentVersion).startsWith('v') ? res.currentVersion : `v${res.currentVersion}`) : 'v1.0.1';
+                if (settingAppVersionText) settingAppVersionText.innerText = `Actualizaciones (${formattedVer})`;
                 latestUpdateInfo = res;
 
                 if (res.hasUpdate) {

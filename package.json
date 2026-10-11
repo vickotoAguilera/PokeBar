@@ -1,7 +1,7 @@
 {
   "name": "pokebar",
   "productName": "PokeBar",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Compañero de escritorio Pokémon para Windows",
   "author": "Vickoto Aguilera <victoraguileramunoz@gmail.com>",
   "main": "src/main.js",
