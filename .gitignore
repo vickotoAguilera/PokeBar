@@ -29,6 +29,11 @@ companion-state.purga-backup-*.json
 test-companion-state.json
 .agent-state.json
 
+# Archivos internos y bitácoras de agentes de IA (solo en local)
+CHANGELOG_AGENTS.md
+PROJECT_STATE.md
+ROADMAP_PROXIMA_SESION.md
+
 # Capturas de pantalla temporales y archivos residuales en la raíz
 # (Las capturas oficiales de la documentación se preservan en docs/screenshots/)
 desktop_snap.png
