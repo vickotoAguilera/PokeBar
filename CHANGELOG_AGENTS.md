@@ -7,6 +7,17 @@
 
 ## 📌 Historial de Componentes y Archivos Intervenidos
 
+### [US-022] Instalador Autónomo de Windows (.exe) con electron-builder, Icono Oficial 3D y Despliegue sin Dependencias [COMPLETADO]
+- **Fecha:** 2026-10-11
+- **Estado:** ✅ Completado, Auditado y Validado (Setup NSIS compila con 0 errores, binario de 88.5 MB generado en `dist/`)
+- **Agentes / Skills Involucrados:** `agente-auditor`, `agente-planner`, `iso-25010-clean-code`, `ui-ux-pro-max`
+- **Descripción de Cambios:**
+  - Conversión del arte original `icono.jfif` a `src/icon.png` (512x512) y `src/icon.ico` multi-capa (256, 128, 64, 48, 32, 16 px).
+  - Instalación y configuración de `electron-builder` en `package.json` con empaquetado autónomo NSIS x64.
+  - Configuración de desempaquetado de bindings nativos de C++ para `better-sqlite3` (`asarUnpack`).
+  - Creación automática de accesos directos en Escritorio y Menú Inicio vinculados al icono oficial.
+  - Actualización de `README.md` documentando el método de instalación vía instalador `.exe` autónomo (sin requerir Node.js).
+
 ### [US-021] Incorporación de Capturas Panorámicas del Modo Paseo, Rival Salvaje y Desafío VS en README.md [COMPLETADO]
 - **Fecha:** 2026-10-11
 - **Estado:** ✅ Completado, Auditado y Validado

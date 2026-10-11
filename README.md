@@ -363,34 +363,51 @@ Cada especie cuenta con una escala de potencial competitivo de 9 rangos que otor
 ## Requisitos del Sistema
 
 * **Sistema Operativo:** Windows 10 o Windows 11 (64-bit).
-* **Entorno de Ejecución:** [Node.js](https://nodejs.org/) v18.0.0 o superior (recomendado Node.js LTS).
+* **Para Usuarios Generales (Instalador .exe):** Ninguno. El instalador empaqueta todo el entorno de ejecución de forma autónoma.
+* **Para Desarrolladores (Código Fuente):** [Node.js](https://nodejs.org/) v18.0.0 o superior.
 
 ---
 
 ## Instalación y Puesta en Marcha
 
-### Paso 1: Clonar el Repositorio
-```bash
-git clone https://github.com/vickotoAguilera/PokeBar.git
-cd PokeBar
-```
-
-### Paso 2: Instalar Dependencias
-```bash
-npm install
-```
-
-### Paso 3: Iniciar la Aplicación
-Tienes varias formas sencillas de iniciar:
-
-1. **Método Recomendado (Doble Clic):**
-   * Haz doble clic en **`start.bat`** (inicia el entorno en segundo plano sin ventanas molestas de terminal).
-2. **Desde la Consola:**
-   ```bash
-   npm start
+### Método 1: Instalador Autónomo Windows (.exe) — Recomendado
+No necesitas instalar Node.js, npm, Python ni ninguna consola:
+1. Ejecuta el archivo instalador:
+   ```plaintext
+   PokeBar Setup 1.0.0.exe
    ```
-3. **Reiniciar el juego:**
-   * Haz doble clic en **`reiniciar.bat`** para cerrar cualquier proceso previo y levantar una instancia fresca sincronizada.
+2. El asistente de instalación configurará el programa en tu equipo y creará automáticamente el acceso directo en el **Escritorio** y en el **Menú Inicio** con el icono oficial de PokeBar.
+3. Haz doble clic en el acceso directo del escritorio para iniciar el juego de inmediato.
+4. Para desinstalar en el futuro, puedes hacerlo limpiamente desde "Configuración > Aplicaciones instaladas" de Windows o con el desinstalador de la carpeta del programa.
+
+---
+
+### Método 2: Modo Desarrollador (Desde el Código Fuente)
+Si deseas colaborar, probar o modificar el código fuente:
+
+1. **Clonar el Repositorio:**
+   ```bash
+   git clone https://github.com/vickotoAguilera/PokeBar.git
+   cd PokeBar
+   ```
+
+2. **Instalar Dependencias:**
+   ```bash
+   npm install
+   ```
+
+3. **Ejecutar en Desarrollo:**
+   * Haz doble clic en **`start.bat`** (inicia el juego en segundo plano).
+   * O ejecuta desde tu consola:
+     ```bash
+     npm start
+     ```
+
+4. **Compilar tu propio Instalador (.exe):**
+   ```bash
+   npm run dist
+   ```
+   El instalador empaquetado se generará dentro del directorio `dist/`.
 
 ---
 

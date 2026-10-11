@@ -111,6 +111,7 @@ flowchart TD
 * ✅ **[US-019] Guía de Referencia Suprema en README.md:** Expansión exhaustiva (380+ líneas) con historia desde macOS, manual detallado de cada botón (`⚙️` y sus 5 switches), sistemas de EXP (repartir experiencia 100%/50%), economía y botines de captura, tasas de Poké Balls (Catch Phase), aprendizaje y reemplazo de habilidades (pool de 4) y escala de Estrellas de Maestría ⭐ y Rangos F ➔ SSS.
 * ✅ **[US-020] Compatibilidad Multi-Agente & Roadmap Comunitario:** Sección agregada en `README.md` detallando soporte de Gemini/Antigravity, modo autónomo sin IA (+25 EXP/ciclo), roadmap de OpenCode, Cursor, Claude Code y convocatoria abierta a la comunidad para pruebas y pull requests.
 * ✅ **[US-021] Suite de Capturas Panorámicas en README.md:** Incorporación de 3 capturas reales en `docs/screenshots/` (paseo en barra de tareas, adversario al acecho y modal de desafío `⚔️ ¿LUCHAR?`) con maquetación y subtítulos detallados.
+* ✅ **[US-022] Instalador Autónomo Windows (.exe) & Icono Oficial 3D:** Integración de `electron-builder`, generación de `src/icon.ico` (multi-capa) y `src/icon.png` a partir de `icono.jfif`, compilación de `PokeBar Setup 1.0.0.exe` (88.5 MB) con acceso directo en Escritorio y Menú Inicio sin requerir Node.js en equipos clientes.
 * ✅ Sincronización inmediata al relanzar `start.bat` (`second-instance`).
 * ✅ Validación automatizada completa: 0 errores en consola, tarjeta limpia y datos de tokens hidratados.
 

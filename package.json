@@ -1,21 +1,60 @@
 {
-  "name": "poketokenbar-windows",
+  "name": "pokebar",
+  "productName": "PokeBar",
   "version": "1.0.0",
-  "description": "Port of PokeTokenBar to Windows using Electron",
+  "description": "Compañero de escritorio Pokémon para Windows",
+  "author": "Vickoto Aguilera <victoraguileramunoz@gmail.com>",
   "main": "src/main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dist": "electron-builder --win"
   },
   "dependencies": {
     "better-sqlite3": "^11.1.2",
     "protobufjs": "^7.3.2"
   },
   "devDependencies": {
-    "electron": "^31.3.1"
+    "electron": "^31.3.1",
+    "electron-builder": "^26.15.3"
   },
   "allowScripts": {
     "electron@31.7.7": true,
     "better-sqlite3@11.10.0": true,
     "protobufjs@7.6.6": true
+  },
+  "build": {
+    "appId": "com.vickoto.pokebar",
+    "productName": "PokeBar",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "src/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "PokeBar",
+      "installerIcon": "src/icon.ico",
+      "uninstallerIcon": "src/icon.ico"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "**/node_modules/better-sqlite3/**"
+    ]
   }
 }
