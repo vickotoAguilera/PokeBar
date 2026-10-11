@@ -7,6 +7,17 @@
 
 ## 📌 Historial de Componentes y Archivos Intervenidos
 
+### [US-021] Incorporación de Capturas Panorámicas del Modo Paseo, Rival Salvaje y Desafío VS en README.md [COMPLETADO]
+- **Fecha:** 2026-10-11
+- **Estado:** ✅ Completado, Auditado y Validado
+- **Agentes / Skills Involucrados:** `agente-auditor`, `agente-planner`, `ui-ux-pro-max`, `iso-25010-clean-code`
+- **Descripción de Cambios:**
+  - Se agregaron las 3 capturas reales de alta resolución en `docs/screenshots/`:
+    - `08_paseo_barra_tareas.png`: Compañero caminando libremente sobre la barra de tareas de Windows.
+    - `09_adversario_al_acecho.png`: Aparición de adversario salvaje al acecho en el horizonte del escritorio.
+    - `10_prompt_desafio_luchar.png`: Encuentro cara a cara y modal interactivo de desafío (`⚔️ ¿LUCHAR?`).
+  - Se expandió la sección 2 del `README.md` con explicaciones detalladas y diseño responsivo para cada fase del paseo y combate.
+
 ### [US-020] Compatibilidad Multi-Agente (Gemini, OpenCode, Cursor), Roadmap y Convocatoria Comunitaria en README.md [COMPLETADO]
 - **Fecha:** 2026-10-11
 - **Estado:** ✅ Completado, Auditado y Validado

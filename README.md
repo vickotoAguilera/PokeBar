@@ -53,16 +53,41 @@ Controla a tu Pokémon líder en tiempo real. Visualiza su nivel, naturaleza, l�
 
 ---
 
-### 2. 🐾 Modo Paseo Libre (Desktop Pet)
-Haz clic en **🐾 Pasear** para que tu Pokémon baje al escritorio y comience a caminar libremente por tu pantalla.
-* Animación fluida de pasos con detección de dirección (sin caminar hacia atrás o *moonwalking*).
-* Burbujas flotantes interactivas con estados de ánimo y notificaciones de EXP pasiva.
-* **Física y Arrastre:** Puedes moverlo con el mouse a cualquier rincón de la pantalla.
+### 2. 🐾 Modo Paseo Libre y Encuentros en el Escritorio (Desktop Pet)
+Haz clic en **🐾 Pasear** o en el botón **`✕`** de la cabecera para que tu Pokémon baje al escritorio y comience a caminar libremente por tu pantalla.
+* **Animación Fluida:** Pasos coordinados con detección de dirección y físicas naturales de movimiento.
+* **Burbujas de Ánimo y Recompensas:** Emite notas musicales `🎶`, corazones `❤️` y notificaciones de ganancia de experiencia pasiva (+25 EXP por ciclo).
+* **Física y Arrastre:** Puedes levantarlo y soltarlo con el mouse en cualquier rincón del monitor.
 * **Doble Clic:** Abre inmediatamente la tarjeta completa sin interrumpir tus tareas.
 
+---
+
+#### 🚶‍♂️ A. Compañero Paseando en la Barra de Tareas
+Al activar el paseo (o cerrar la tarjeta con **`✕`**), tu compañero recorre libremente la parte superior de la barra de tareas de Windows mientras programas, navegas o juegas:
+
 <div align="center">
-  <img src="docs/screenshots/02_paseo_escritorio.png" alt="Modo Paseo Escritorio" width="480">
-  <p><em>Modo Paseo: Tu Pokémon te acompaña en el escritorio ganando experiencia pasiva</em></p>
+  <img src="docs/screenshots/08_paseo_barra_tareas.png" alt="Paseo sobre la Barra de Tareas" width="850">
+  <p><em>Paseo libre: Tu compañero recorre tu pantalla y barra de tareas acumulando experiencia pasiva</em></p>
+</div>
+
+---
+
+#### 🌿 B. Aparición de Adversarios Salvajes al Acecho
+Si tienes activados los encuentros salvajes en los ajustes o en el HUD (`⚔️`), Pokémon de cualquier generación y nivel (como este Corsola salvaje Nv. 37) aparecerán caminando a lo lejos por tu escritorio buscando a tu compañero:
+
+<div align="center">
+  <img src="docs/screenshots/09_adversario_al_acecho.png" alt="Adversario Salvaje al Acecho" width="850">
+  <p><em>Encuentro salvaje: Un rival salvaje aparece al acecho en el horizonte de tu pantalla</em></p>
+</div>
+
+---
+
+#### ⚔️ C. Encuentro Cara a Cara y Desafío Flotante (`⚔️ ¿LUCHAR?`)
+Cuando ambos Pokémon se cruzan, se posicionan frente a frente y se despliega una tarjeta flotante interactiva con temporizador regresivo de 15 segundos: pulsa **`⚔️ Sí`** para abrir el Estadio Flotante e iniciar la batalla, o **`🏃 Huir`** para continuar tu paseo pacíficamente:
+
+<div align="center">
+  <img src="docs/screenshots/10_prompt_desafio_luchar.png" alt="Desafío Flotante ¿Luchar?" width="850">
+  <p><em>Cara a cara: Prompt flotante con opciones para saltar al Estadio de Combate o huir del encuentro</em></p>
 </div>
 
 ---
