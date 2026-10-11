@@ -15,7 +15,7 @@
 **Tu Mascota Virtual Pokémon y Compañero de Escritorio para Gamers y Programadores.**  
 *Convierte tu actividad diaria en la PC, líneas de código y tokens en una experiencia viva: incuba huevos, captura Pokémon salvajes, evoluciona a tu equipo y combate en un estadio flotante en tiempo real.*
 
-[Descargar (.EXE)](#método-1-instalador-autónomo-windows-exe--recomendado) • [Origen del Proyecto](#origen-del-proyecto-y-evolución-desde-macos) • [Características](#características-principales) • [Manual de Botones](#manual-completo-de-botones-e-interfaz) • [Guía de EXP](#sistema-de-experiencia-exp-y-niveles-1-100) • [Economía y Dinero](#economía-del-juego-y-saldo-de-tienda) • [Capturas](#sistema-de-capturas-y-poké-balls) • [Habilidades](#sistema-de-habilidades-ataques-y-reemplazo) • [Estrellas y Rangos](#sistema-de-estrellas-rangos-f-a-sss-y-shinies) • [Agentes y Comunidad](#compatibilidad-de-agentes--roadmap-comunitario) • [Atajos](#atajos-de-teclado-y-controles)
+[Descargar (.EXE)](#método-1-instalador-autónomo-windows-exe--recomendado) • [Origen del Proyecto](#origen-del-proyecto-y-evolución-desde-macos) • [Características](#características-principales) • [Manual de Botones](#manual-completo-de-botones-e-interfaz) • [Actualizaciones In-Game](#sistema-de-actualizaciones-in-game) • [Guía de EXP](#sistema-de-experiencia-exp-y-niveles-1-100) • [Economía y Dinero](#economía-del-juego-y-saldo-de-tienda) • [Capturas](#sistema-de-capturas-y-poké-balls) • [Habilidades](#sistema-de-habilidades-ataques-y-reemplazo) • [Estrellas y Rangos](#sistema-de-estrellas-rangos-f-a-sss-y-shinies) • [Agentes y Comunidad](#compatibilidad-de-agentes--roadmap-comunitario) • [Atajos](#atajos-de-teclado-y-controles)
 
 </div>
 
@@ -189,7 +189,7 @@ Gasta los tokens obtenidos con tu actividad en la PC:
 ---
 
 ### 2. El Panel de Ajustes en Detalle
-Al pulsar el botón de **Ajustes**, se despliega el panel de configuración avanzada con 5 interruptores interactivos y una herramienta de mantenimiento:
+Al pulsar el botón de **Ajustes**, se despliega el panel de configuración avanzada con 5 interruptores interactivos, una herramienta de mantenimiento y el verificador de actualizaciones:
 
 1. **Encuentros Salvajes (ON / OFF):**  
    Controla si los rivales salvajes pueden aparecer caminando por tu monitor para retarte a un duelo. Si necesitas máxima concentración o estás en una videollamada, apágalo para disfrutar de un paseo 100% seguro y sin interrupciones.
@@ -203,6 +203,8 @@ Al pulsar el botón de **Ajustes**, se despliega el panel de configuración avan
    Sincronizado con el atajo de teclado **`Ctrl + Shift + H`**. Oculta instantáneamente todas las ventanas mientras juegas o miras películas sin detener el escaneo de tokens ni la acumulación de experiencia pasiva.
 6. **Botón Sincronizar / Reparar Equipo:**  
    Herramienta de auto-sanación instantánea. Si sufres algún corte de energía o error de sincronización, este botón restaura los PP al 100%, purga referencias huérfanas, rehidrata los datos de la base local y sincroniza la tarjeta al instante.
+7. **Buscador de Actualizaciones (Buscar Actualizaciones):**  
+   Verifica en tiempo real contra los lanzamientos oficiales en GitHub si hay disponible una versión más reciente. Muestra el estado actual ("Tienes la última versión" o alerta de actualización disponible) y permite abrir el modal detallado para descargar el nuevo instalador .exe en un clic.
 
 ---
 
@@ -359,6 +361,21 @@ Cada especie cuenta con una escala de potencial competitivo de 9 rangos que otor
 * **Probabilidad Base:** 1 entre 64 eclosiones o capturas.
 * **Amuleto Iris:** Al comprar el *Amuleto Iris* en la Tienda, la probabilidad mejora a **1 entre 48**.
 * **Distintivos:** Insignia brillante `SHINY`, paleta de color alternativa oficial y filtro exclusivo en la Caja PC (`Caja Shiny`).
+
+---
+
+## Sistema de Actualizaciones In-Game
+
+PokeBar cuenta con un sistema integrado de detección y descarga de versiones directamente conectado con los lanzamientos oficiales en GitHub Releases:
+
+* **Comprobación Silenciosa al Iniciar:** A los 5 segundos de iniciarse la aplicación, se realiza una comprobación no bloqueante en segundo plano para verificar si hay una versión superior disponible.
+* **Aviso Visual en Tarjeta:** Si se detecta una nueva versión en GitHub (por ejemplo, tras publicar una versión con correcciones de errores o nuevas funciones), se despliega un banner de notificación sutil en la parte inferior de la tarjeta del compañero.
+* **Acceso desde Ajustes:** En cualquier momento puedes abrir el modal de **Ajustes** y pulsar el botón **Buscar Actualizaciones** para forzar una consulta manual.
+* **Modal Detallado de Lanzamiento:** Al pulsar el banner o el botón de comprobación, se despliega la ventana de actualización con:
+  * Versión instalada vs. Nueva versión remota.
+  * Notas de lanzamiento oficiales del parche (changelog).
+  * Botón **Descargar Actualización (.exe)**: Abre la descarga directa del nuevo instalador oficial en tu navegador predeterminado para actualizar con un solo clic.
+  * Botón **Ver en GitHub**: Permite inspeccionar el release completo y su código fuente en el repositorio.
 
 ---
 

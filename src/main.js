@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, screen, globalShortcut } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, screen, globalShortcut, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -1098,6 +1098,71 @@ ipcMain.on('action-update-setting', (_event, { key, val }) => {
     if (companion) {
         companion.updateSetting(key, val);
         updateAll();
+    }
+});
+
+// GitHub Releases Updater
+function compareVersions(v1, v2) {
+    const p1 = String(v1).replace(/^v/, '').split('.').map(n => parseInt(n, 10) || 0);
+    const p2 = String(v2).replace(/^v/, '').split('.').map(n => parseInt(n, 10) || 0);
+    for (let i = 0; i < Math.max(p1.length, p2.length); i++) {
+        const a = p1[i] || 0;
+        const b = p2[i] || 0;
+        if (a > b) return 1;
+        if (a < b) return -1;
+    }
+    return 0;
+}
+
+async function fetchLatestRelease() {
+    let currentVersion = '1.0.0';
+    try {
+        currentVersion = app.getVersion() || '1.0.0';
+    } catch (_e) {}
+
+    const repoUrl = 'https://api.github.com/repos/vickotoAguilera/PokeBar/releases/latest';
+    try {
+        const response = await fetch(repoUrl, {
+            headers: { 'User-Agent': 'PokeBar-Desktop-App' }
+        });
+        if (!response.ok) {
+            return { success: false, error: `GitHub API HTTP ${response.status}`, currentVersion };
+        }
+        const data = await response.json();
+        const remoteTag = data.tag_name || '';
+        const hasUpdate = compareVersions(remoteTag, currentVersion) > 0;
+
+        let downloadUrl = data.html_url;
+        if (Array.isArray(data.assets)) {
+            const exeAsset = data.assets.find(a => a.name && a.name.toLowerCase().endsWith('.exe'));
+            if (exeAsset && exeAsset.browser_download_url) {
+                downloadUrl = exeAsset.browser_download_url;
+            }
+        }
+
+        return {
+            success: true,
+            hasUpdate,
+            currentVersion,
+            remoteVersion: remoteTag,
+            name: data.name || remoteTag,
+            notes: data.body || '',
+            releaseUrl: data.html_url,
+            downloadUrl
+        };
+    } catch (err) {
+        log(`[UPDATER ERROR] ${err.message}`);
+        return { success: false, error: err.message, currentVersion };
+    }
+}
+
+ipcMain.handle('check-for-updates', async () => {
+    return await fetchLatestRelease();
+});
+
+ipcMain.on('action-open-external-url', (_event, url) => {
+    if (url && (url.startsWith('https://') || url.startsWith('http://'))) {
+        shell.openExternal(url);
     }
 });
 

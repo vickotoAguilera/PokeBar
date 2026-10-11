@@ -91,5 +91,9 @@ contextBridge.exposeInMainWorld('api', {
     battleCatch: (ballType) => ipcRenderer.send('action-battle-catch', ballType),
     battleFinishCatch: () => ipcRenderer.send('action-battle-finish-catch'),
     battleSwitch: (slotIndex) => ipcRenderer.send('action-battle-switch', slotIndex),
-    battleRun: () => ipcRenderer.send('action-battle-run')
+    battleRun: () => ipcRenderer.send('action-battle-run'),
+
+    // In-App Updates & External URLs
+    checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+    openExternalUrl: (url) => ipcRenderer.send('action-open-external-url', url)
 });

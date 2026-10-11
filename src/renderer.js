@@ -785,6 +785,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (moveLearnModalOverlay) moveLearnModalOverlay.style.display = 'none';
         if (settingsModalOverlay) settingsModalOverlay.style.display = 'none';
         if (dexDetailsModal) dexDetailsModal.style.display = 'none';
+        const updateModalOverlay = document.getElementById('updateModalOverlay');
+        if (updateModalOverlay) updateModalOverlay.style.display = 'none';
         pendingSwapAction = null;
     }
 
@@ -856,6 +858,111 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 1800);
         });
     }
+
+    // In-App Updates System (GitHub Releases)
+    const btnCheckUpdates = document.getElementById('btnCheckUpdates');
+    const updateStatusText = document.getElementById('updateStatusText');
+    const settingAppVersionText = document.getElementById('settingAppVersionText');
+    const updateModalOverlay = document.getElementById('updateModalOverlay');
+    const updateModalVersionTitle = document.getElementById('updateModalVersionTitle');
+    const updateModalNotes = document.getElementById('updateModalNotes');
+    const btnDownloadUpdateExe = document.getElementById('btnDownloadUpdateExe');
+    const btnViewReleaseGithub = document.getElementById('btnViewReleaseGithub');
+    const btnCloseUpdateModal = document.getElementById('btnCloseUpdateModal');
+    const btnCloseUpdateModalX = document.getElementById('btnCloseUpdateModalX');
+    const updateNoticeBanner = document.getElementById('updateNoticeBanner');
+    const updateNoticeText = document.getElementById('updateNoticeText');
+    const btnOpenUpdateFromBanner = document.getElementById('btnOpenUpdateFromBanner');
+
+    let latestUpdateInfo = null;
+
+    async function runUpdateCheck(manual = false) {
+        if (!window.api || !window.api.checkForUpdates) return;
+        if (manual && updateStatusText) updateStatusText.innerText = 'Consultando GitHub...';
+        if (manual && btnCheckUpdates) btnCheckUpdates.disabled = true;
+
+        try {
+            const res = await window.api.checkForUpdates();
+            if (manual && btnCheckUpdates) btnCheckUpdates.disabled = false;
+
+            if (res && res.success) {
+                if (settingAppVersionText) settingAppVersionText.innerText = `Actualizaciones (${res.currentVersion || 'v1.0.0'})`;
+                latestUpdateInfo = res;
+
+                if (res.hasUpdate) {
+                    if (updateStatusText) updateStatusText.innerHTML = `<span style="color:#38bdf8; font-weight:800;">¡Disponible ${res.remoteVersion}!</span>`;
+                    if (updateNoticeBanner && updateNoticeText) {
+                        updateNoticeText.innerText = `¡Nueva versión ${res.remoteVersion} disponible!`;
+                        updateNoticeBanner.style.display = 'flex';
+                    }
+                    if (manual) openUpdateModal(res);
+                } else {
+                    if (updateStatusText) updateStatusText.innerText = 'Tienes la versión más reciente';
+                    if (updateNoticeBanner) updateNoticeBanner.style.display = 'none';
+                    if (manual && btnCheckUpdates) {
+                        btnCheckUpdates.innerText = '✓ Al día';
+                        setTimeout(() => { if (btnCheckUpdates) btnCheckUpdates.innerText = 'Buscar'; }, 2000);
+                    }
+                }
+            } else {
+                if (manual && updateStatusText) updateStatusText.innerText = 'No se pudo conectar a GitHub';
+            }
+        } catch (e) {
+            if (manual && btnCheckUpdates) btnCheckUpdates.disabled = false;
+            if (manual && updateStatusText) updateStatusText.innerText = 'Error al comprobar';
+        }
+    }
+
+    function openUpdateModal(info) {
+        if (!updateModalOverlay) return;
+        if (updateModalVersionTitle) updateModalVersionTitle.innerText = `${info.name || info.remoteVersion} (Instalada: ${info.currentVersion})`;
+        if (updateModalNotes) updateModalNotes.innerText = info.notes || 'Mejoras de rendimiento y correcciones de bugs disponibles.';
+        updateModalOverlay.style.display = 'flex';
+    }
+
+    function closeUpdateModal() {
+        if (updateModalOverlay) updateModalOverlay.style.display = 'none';
+    }
+
+    if (btnCheckUpdates) {
+        btnCheckUpdates.addEventListener('click', () => runUpdateCheck(true));
+    }
+    if (btnOpenUpdateFromBanner) {
+        btnOpenUpdateFromBanner.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (latestUpdateInfo) openUpdateModal(latestUpdateInfo);
+            else runUpdateCheck(true);
+        });
+    }
+    if (updateNoticeBanner) {
+        updateNoticeBanner.addEventListener('click', () => {
+            if (latestUpdateInfo) openUpdateModal(latestUpdateInfo);
+            else runUpdateCheck(true);
+        });
+    }
+    if (btnCloseUpdateModal) btnCloseUpdateModal.addEventListener('click', closeUpdateModal);
+    if (btnCloseUpdateModalX) btnCloseUpdateModalX.addEventListener('click', closeUpdateModal);
+
+    if (btnDownloadUpdateExe) {
+        btnDownloadUpdateExe.addEventListener('click', () => {
+            if (latestUpdateInfo && latestUpdateInfo.downloadUrl) {
+                window.api.openExternalUrl(latestUpdateInfo.downloadUrl);
+            }
+        });
+    }
+
+    if (btnViewReleaseGithub) {
+        btnViewReleaseGithub.addEventListener('click', () => {
+            if (latestUpdateInfo && latestUpdateInfo.releaseUrl) {
+                window.api.openExternalUrl(latestUpdateInfo.releaseUrl);
+            }
+        });
+    }
+
+    // Comprobar actualizaciones automáticamente a los 5 segundos de iniciar
+    setTimeout(() => {
+        runUpdateCheck(false);
+    }, 5000);
 
     // Swap Modal Controls (Party 6/6 replacement)
     function openSwapModal(actionType, actionId) {
