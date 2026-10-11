@@ -1,0 +1,3361 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PokeTokenBar Windows</title>
+    <style>
+        :root {
+            --sprite-flip: scaleX(1);
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: transparent;
+            overflow: hidden;
+            display: flex;
+            justify-content: flex-end;
+            align-items: flex-end;
+            height: 100vh;
+            width: 100vw;
+            padding: 6px;
+        }
+
+        /* Glassmorphism Card Container */
+        .pet-card {
+            -webkit-app-region: drag;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
+            background: rgba(15, 23, 42, 0.88);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 18px;
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 10px;
+            color: #f8fafc;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .pet-card.expanded {
+            width: 100%;
+            height: 100%;
+        }
+
+        .pet-header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: #94a3b8;
+            margin-bottom: 3px;
+            padding: 0 2px;
+        }
+
+        .header-left, .header-right {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .level-badge {
+            background: rgba(99, 102, 241, 0.25);
+            color: #a5b4fc;
+            padding: 2px 7px;
+            border-radius: 12px;
+            font-size: 10px;
+            border: 1px solid rgba(99, 102, 241, 0.35);
+        }
+
+        .shiny-badge {
+            display: none;
+            background: linear-gradient(135deg, #f59e0b, #ec4899);
+            color: #fff;
+            padding: 2px 5px;
+            border-radius: 10px;
+            font-size: 9px;
+            font-weight: 800;
+            box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+            animation: pulse-shiny 2s infinite;
+        }
+
+        @keyframes pulse-shiny {
+            0%, 100% { opacity: 0.9; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.08); }
+        }
+
+        .btn-icon {
+            -webkit-app-region: no-drag;
+            background: rgba(255, 255, 255, 0.08);
+            border: none;
+            color: #cbd5e1;
+            font-size: 11px;
+            cursor: pointer;
+            padding: 3px 6px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-icon:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            transform: scale(1.05);
+        }
+
+        /* Party Slots (6 Poké Balls) */
+        .party-bar {
+            -webkit-app-region: no-drag;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2px 4px;
+            margin-bottom: 3px;
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .party-slot {
+            position: relative;
+            width: clamp(24px, 2.8vw + 0.8vh, 38px);
+            height: clamp(24px, 2.8vw + 0.8vh, 38px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1.5px solid rgba(255, 255, 255, 0.15);
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .party-slot:hover {
+            transform: scale(1.15);
+            border-color: rgba(99, 102, 241, 0.8);
+        }
+
+        .party-slot.active-lead {
+            border: 2px solid #fbbf24;
+            box-shadow: 0 0 10px rgba(251, 191, 36, 0.7);
+            background: rgba(245, 158, 11, 0.15);
+            transform: scale(1.08);
+        }
+
+        .party-slot.empty {
+            border: 1.5px dashed rgba(255, 255, 255, 0.2);
+            opacity: 0.45;
+            cursor: default;
+        }
+
+        .party-slot img {
+            width: clamp(17px, 2.0vw + 0.6vh, 28px);
+            height: clamp(17px, 2.0vw + 0.6vh, 28px);
+            image-rendering: pixelated;
+            object-fit: contain;
+        }
+
+        .lead-star {
+            position: absolute;
+            top: -4px;
+            right: -3px;
+            font-size: 8px;
+            color: #fbbf24;
+            display: none;
+        }
+
+        .party-slot.active-lead .lead-star {
+            display: block;
+        }
+
+        /* Sprite Stage */
+        .sprite-stage {
+            -webkit-app-region: no-drag;
+            position: relative;
+            width: clamp(76px, 28vmin, 130px);
+            height: clamp(76px, 28vmin, 130px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin: 0 0 1px 0;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .sprite-stage:hover {
+            transform: scale(1.08);
+        }
+
+        .sprite-stage:active {
+            transform: scale(0.95);
+        }
+
+        .sprite-glow {
+            position: absolute;
+            width: clamp(66px, 26vmin, 120px);
+            height: clamp(66px, 26vmin, 120px);
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.35) 0%, rgba(99, 102, 241, 0) 70%);
+            border-radius: 50%;
+            z-index: 1;
+            animation: breathe 3s ease-in-out infinite;
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(0.9); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 0.9; }
+        }
+
+        .pokemon-sprite {
+            position: relative;
+            z-index: 2;
+            width: clamp(68px, 25vmin, 120px);
+            height: clamp(68px, 25vmin, 120px);
+            object-fit: contain;
+            image-rendering: pixelated;
+            transition: transform 0.2s ease;
+        }
+
+        .sleep-bubble {
+            display: none;
+            position: absolute;
+            top: -6px;
+            right: 4px;
+            font-size: 14px;
+            z-index: 5;
+            animation: float-zzz 1.5s infinite;
+        }
+
+        @keyframes float-zzz {
+            0% { transform: translateY(0) scale(0.8); opacity: 0.3; }
+            50% { transform: translateY(-6px) scale(1.1); opacity: 1; }
+            100% { transform: translateY(-12px) scale(1); opacity: 0; }
+        }
+
+        /* Pokemon Name & Nature */
+        .pokemon-name {
+            font-size: 12.5px;
+            font-weight: 800;
+            color: #ffffff;
+            text-align: center;
+            margin-bottom: 1px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .nature-tag {
+            font-size: 9px;
+            color: #94a3b8;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        /* Token Counter Badge */
+        .token-badge {
+            background: rgba(30, 41, 59, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 3px 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 4px;
+        }
+
+        .token-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+        }
+
+        .token-divider {
+            width: 1px;
+            height: 18px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .token-label {
+            font-size: 7.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #64748b;
+            font-weight: 700;
+        }
+
+        .token-value {
+            font-size: 10.5px;
+            font-weight: 800;
+            color: #38bdf8;
+        }
+
+        .token-value-shop {
+            font-size: 10.5px;
+            font-weight: 800;
+            color: #f59e0b;
+        }
+
+        /* Progress Section */
+        .progress-section {
+            width: 100%;
+            margin-bottom: 4px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 8.5px;
+            color: #94a3b8;
+            margin-bottom: 2px;
+            font-weight: 600;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 5px;
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #6366f1, #38bdf8);
+            border-radius: 10px;
+            transition: width 0.4s ease;
+        }
+
+        /* Quick Action Buttons */
+        .quick-actions {
+            -webkit-app-region: no-drag;
+            width: 100%;
+            display: flex;
+            gap: 4px;
+            margin-bottom: 4px;
+        }
+
+        .btn-quick {
+            flex: 1;
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #cbd5e1;
+            padding: 3px 0;
+            font-size: 8.5px;
+            font-weight: 700;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .btn-quick:hover {
+            background: rgba(99, 102, 241, 0.35);
+            color: #fff;
+            border-color: rgba(99, 102, 241, 0.5);
+        }
+
+        /* Drawer container */
+        .drawer-container {
+            -webkit-app-region: no-drag;
+            display: none;
+            width: 100%;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 2px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding-top: 4px;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .pet-card.expanded .drawer-container {
+            display: flex;
+        }
+
+        /* Tabs Nav */
+        .tabs-nav {
+            display: flex;
+            gap: clamp(2px, 0.4vw, 5px);
+            width: 100%;
+            margin-bottom: 2px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            color: #94a3b8;
+            font-size: clamp(8px, 0.75vw + 0.25vh, 12px);
+            font-weight: 700;
+            padding: clamp(3px, 0.5vh, 6px) clamp(2px, 0.4vw, 8px);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #f1f5f9;
+        }
+
+        .tab-btn.active {
+            background: rgba(99, 102, 241, 0.45);
+            border-color: rgba(99, 102, 241, 0.7);
+            color: #ffffff;
+            box-shadow: 0 0 8px rgba(99, 102, 241, 0.35);
+        }
+
+        /* Tab Panes */
+        .tab-pane {
+            display: none;
+            flex-direction: column;
+            gap: clamp(4px, 0.6vh, 8px);
+            flex: 1;
+            min-height: 0;
+            height: 100%;
+            max-height: none;
+            overflow-y: auto;
+            padding-right: 3px;
+        }
+
+        .tab-pane.active {
+            display: flex;
+        }
+
+        .tab-pane::-webkit-scrollbar {
+            width: 4px;
+        }
+        .tab-pane::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 4px;
+        }
+
+        /* Cards in tabs */
+        .item-card {
+            background: rgba(30, 41, 59, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: clamp(4px, 0.6vh, 8px) clamp(6px, 0.8vw, 12px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.15s;
+        }
+        .item-card:hover {
+            background: rgba(45, 55, 75, 0.75);
+        }
+
+        .item-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .item-title {
+            font-size: clamp(9px, 0.8vw + 0.3vh, 13px);
+            font-weight: 700;
+            color: #f1f5f9;
+        }
+
+        .item-subtitle {
+            font-size: clamp(7.5px, 0.65vw + 0.25vh, 11px);
+            color: #94a3b8;
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            font-size: clamp(8px, 0.7vw + 0.25vh, 12px);
+            font-weight: 700;
+            padding: clamp(2px, 0.4vh, 6px) clamp(6px, 0.6vw, 12px);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+
+        .action-btn:hover:not(:disabled) {
+            transform: scale(1.04);
+            filter: brightness(1.15);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background: #475569;
+        }
+
+        /* Regional Nav in Pokédex */
+        .region-nav {
+            display: flex;
+            gap: 3px;
+            overflow-x: auto;
+            padding-bottom: 3px;
+            margin-bottom: 3px;
+            width: 100%;
+        }
+        .region-nav::-webkit-scrollbar {
+            height: 3px;
+        }
+        .region-nav::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+        .region-pill {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #94a3b8;
+            font-size: clamp(7.5px, 0.65vw + 0.2vh, 11px);
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 12px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.15s;
+        }
+        .region-pill:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+        }
+        .region-pill.active {
+            background: rgba(99, 102, 241, 0.5);
+            border-color: #818cf8;
+            color: #fff;
+            box-shadow: 0 0 6px rgba(99, 102, 241, 0.4);
+        }
+
+        /* Pokédex Grid Matching User Photo */
+        .dex-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(clamp(60px, 6vw, 85px), 1fr));
+            gap: clamp(3px, 0.5vw, 6px);
+            width: 100%;
+            padding: 2px;
+        }
+
+        .dex-cell {
+            position: relative;
+            background: rgba(20, 30, 48, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 7px;
+            padding: clamp(3px, 0.4vh, 6px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            transition: all 0.15s ease;
+        }
+        .dex-cell:hover {
+            border-color: rgba(99, 102, 241, 0.4);
+            background: rgba(30, 41, 65, 0.85);
+            transform: translateY(-1px);
+        }
+        .dex-cell-num {
+            position: absolute;
+            top: 2px;
+            left: 3px;
+            font-size: clamp(8px, 0.65vw + 0.25vh, 11px);
+            font-weight: 800;
+            color: #64748b;
+        }
+        .dex-cell-sprite {
+            width: clamp(38px, 3.8vw, 56px);
+            height: clamp(38px, 3.8vw, 56px);
+            image-rendering: pixelated;
+            object-fit: contain;
+            margin-top: 6px;
+            margin-bottom: 2px;
+            transition: filter 0.2s;
+        }
+        .dex-cell-sprite.silhouette {
+            filter: brightness(0) opacity(0.35);
+            pointer-events: none;
+        }
+        .dex-cell-name {
+            font-size: clamp(8.5px, 0.75vw + 0.25vh, 12px);
+            font-weight: 700;
+            color: #e2e8f0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+        .btn-dex-add {
+            font-size: clamp(7.5px, 0.65vw + 0.2vh, 11px);
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-top: 2px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-weight: 700;
+            transition: all 0.15s;
+        }
+        .btn-dex-add:hover {
+            transform: scale(1.08);
+            filter: brightness(1.2);
+        }
+
+        .dex-empty {
+            grid-column: 1 / -1;
+            text-align: center;
+            color: #64748b;
+            font-size: clamp(9px, 0.8vw, 13px);
+            padding: 10px 0;
+        }
+
+        /* Pokédex Mastery Badge ⭐ */
+        .dex-mastery-badge {
+            position: absolute;
+            top: 2px;
+            right: 3px;
+            font-size: clamp(7.5px, 0.65vw + 0.15vh, 10.5px);
+            color: #fbbf24;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            text-shadow: 0 0 4px rgba(251, 191, 36, 0.8);
+            z-index: 2;
+        }
+
+        /* Drag and Drop Party HUD & Box Slots */
+        .party-slot[draggable="true"] {
+            cursor: grab;
+        }
+        .party-slot[draggable="true"]:active {
+            cursor: grabbing;
+        }
+        .party-slot.dragging {
+            opacity: 0.35;
+            transform: scale(0.9);
+        }
+        .party-slot.drag-over {
+            border: 2px dashed #fbbf24 !important;
+            transform: scale(1.2) !important;
+            box-shadow: 0 0 12px rgba(251, 191, 36, 0.8) !important;
+        }
+
+        /* GBA PC Box Storage System (Screenshot 5 Style) */
+        .gba-pc-wrapper {
+            display: flex;
+            gap: clamp(6px, 1vw, 12px);
+            width: 100%;
+            height: 100%;
+            min-height: 0;
+            flex: 1;
+        }
+
+        /* Left Column: Inspector Card */
+        .gba-pc-inspector {
+            width: clamp(140px, 35%, 220px);
+            background: rgba(15, 23, 42, 0.95);
+            border: 2px solid rgba(148, 163, 184, 0.35);
+            border-radius: 10px;
+            padding: clamp(6px, 0.8vh, 10px);
+            display: flex;
+            flex-direction: column;
+            gap: clamp(4px, 0.5vh, 7px);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+            height: 100%;
+            min-height: 0;
+            overflow-y: auto;
+        }
+
+        .gba-inspector-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 3px;
+        }
+
+        .gba-inspector-name {
+            font-size: clamp(10px, 0.9vw + 0.3vh, 14px);
+            font-weight: 800;
+            color: #f8fafc;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .gba-inspector-gender {
+            font-size: clamp(9px, 0.8vw, 12px);
+            font-weight: 800;
+            color: #38bdf8;
+        }
+
+        .gba-inspector-sprite-box {
+            width: 100%;
+            height: clamp(68px, 11vh, 105px);
+            background: radial-gradient(circle, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%);
+            border: 1.5px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .gba-inspector-sprite-box img {
+            width: clamp(52px, 7vw, 84px);
+            height: clamp(52px, 7vw, 84px);
+            object-fit: contain;
+            image-rendering: pixelated;
+            transition: transform 0.2s;
+        }
+
+        .gba-inspector-level-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .gba-inspector-level {
+            font-size: clamp(9.5px, 0.85vw + 0.25vh, 13px);
+            font-weight: 800;
+            color: #fbbf24;
+        }
+
+        .gba-inspector-types {
+            display: flex;
+            gap: 3px;
+        }
+
+        .gba-type-badge {
+            font-size: clamp(7.5px, 0.65vw + 0.2vh, 10.5px);
+            font-weight: 800;
+            text-transform: uppercase;
+            padding: 1.5px 5px;
+            border-radius: 4px;
+            color: #ffffff;
+            letter-spacing: 0.3px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+        }
+
+        .gba-inspector-trait-box {
+            background: rgba(30, 41, 59, 0.65);
+            border-radius: 6px;
+            padding: 4px 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            font-size: clamp(8.5px, 0.75vw + 0.2vh, 11.5px);
+        }
+
+        .gba-trait-line {
+            display: flex;
+            justify-content: space-between;
+            color: #cbd5e1;
+        }
+
+        .gba-trait-label {
+            color: #94a3b8;
+            font-weight: 700;
+        }
+
+        .gba-inspector-moves-box {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2.5px;
+        }
+
+        .gba-move-pill {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 4px;
+            padding: 2px 4px;
+            display: flex;
+            flex-direction: column;
+            font-size: clamp(7px, 0.6vw + 0.2vh, 9.5px);
+        }
+
+        .gba-move-pill-name {
+            font-weight: 700;
+            color: #f1f5f9;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .gba-move-pill-meta {
+            display: flex;
+            justify-content: space-between;
+            color: #94a3b8;
+            font-size: 0.85em;
+        }
+
+        .gba-inspector-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            margin-top: auto;
+        }
+
+        .gba-btn-team {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 6px;
+            padding: clamp(3px, 0.5vh, 6px);
+            font-size: clamp(9px, 0.8vw + 0.2vh, 12px);
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .gba-btn-team:hover {
+            transform: scale(1.02);
+            filter: brightness(1.15);
+        }
+
+        .gba-btn-clean {
+            background: rgba(51, 65, 85, 0.7);
+            color: #cbd5e1;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 6px;
+            padding: clamp(2px, 0.4vh, 4px);
+            font-size: clamp(7.5px, 0.65vw, 10px);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .gba-btn-clean:hover {
+            background: rgba(71, 85, 105, 0.9);
+            color: #fff;
+        }
+
+        /* Right Column: GBA Wallpaper Box Grid */
+        .gba-pc-box-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-height: 0;
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 10px;
+            border: 1.5px solid rgba(255,255,255,0.12);
+            overflow: hidden;
+        }
+
+        .gba-box-header {
+            background: linear-gradient(135deg, #22c55e, #15803d);
+            padding: clamp(3px, 0.5vh, 6px) clamp(8px, 1vw, 14px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #14532d;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
+        }
+
+        .gba-box-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .gba-box-name {
+            font-size: clamp(11px, 1.0vw + 0.3vh, 15px);
+            font-weight: 900;
+            color: #ffffff;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+        }
+
+        .gba-box-count {
+            font-size: clamp(8.5px, 0.75vw, 11px);
+            background: rgba(0,0,0,0.25);
+            padding: 1px 6px;
+            border-radius: 10px;
+            color: #dcfce7;
+            font-weight: 700;
+        }
+
+        .gba-nav-btn {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: #fff;
+            border-radius: 5px;
+            padding: 2px 7px;
+            font-size: clamp(9px, 0.8vw, 12px);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .gba-nav-btn:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .gba-box-grid-frame {
+            flex: 1;
+            min-height: 0;
+            padding: clamp(4px, 0.6vw, 8px);
+            overflow-y: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #d4e7a8;
+            background-image: 
+                radial-gradient(#b8d27e 18%, transparent 19%),
+                radial-gradient(#b8d27e 18%, transparent 19%);
+            background-size: 16px 16px;
+            background-position: 0 0, 8px 8px;
+        }
+
+        .gba-box-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: clamp(3px, 0.5vw, 6px);
+            width: 100%;
+            height: 100%;
+            max-height: 100%;
+        }
+
+        .gba-box-slot {
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.55);
+            border: 1.5px solid rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.12s ease;
+        }
+
+        .gba-box-slot:hover, .gba-box-slot.selected {
+            background: rgba(255, 255, 255, 0.95);
+            border-color: #3b82f6;
+            transform: scale(1.08);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            z-index: 2;
+        }
+
+        .gba-box-slot.selected::after {
+            content: '👆';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            animation: bounceGlove 0.5s infinite alternate ease-in-out;
+            pointer-events: none;
+        }
+
+        @keyframes bounceGlove {
+            0% { transform: translateX(-50%) translateY(0); }
+            100% { transform: translateX(-50%) translateY(-3px); }
+        }
+
+        .gba-box-slot img {
+            width: clamp(22px, 3.2vw, 38px);
+            height: clamp(22px, 3.2vw, 38px);
+            object-fit: contain;
+            image-rendering: pixelated;
+            pointer-events: none;
+        }
+
+        .gba-box-slot.empty {
+            background: rgba(0, 0, 0, 0.05);
+            border: 1px dashed rgba(0, 0, 0, 0.15);
+            cursor: default;
+        }
+
+        .gba-box-slot.dragging {
+            opacity: 0.35;
+        }
+
+        .gba-box-slot.drag-over {
+            border: 2px dashed #3b82f6 !important;
+            background: rgba(191, 219, 254, 0.9) !important;
+            transform: scale(1.12);
+        }
+
+        /* Embedded Arena UI */
+        .embedded-arena-stage {
+            background: radial-gradient(circle at center, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%);
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            border-radius: 8px;
+            padding: clamp(4px, 0.6vh, 8px);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            position: relative;
+        }
+        .arena-entity {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+        }
+        .arena-entity.wild-entity {
+            justify-content: flex-end;
+        }
+        .arena-entity.player-entity {
+            justify-content: flex-start;
+        }
+        .arena-sprite {
+            width: clamp(38px, 4vw, 56px);
+            height: clamp(38px, 4vw, 56px);
+            image-rendering: pixelated;
+            object-fit: contain;
+        }
+        .entity-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: clamp(80px, 9vw, 130px);
+        }
+        .entity-name-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .entity-name {
+            font-size: clamp(8px, 0.7vw + 0.2vh, 12px);
+            font-weight: 800;
+            color: #f8fafc;
+        }
+        .entity-level {
+            font-size: clamp(7px, 0.6vw, 10px);
+            color: #38bdf8;
+            font-weight: 700;
+        }
+        .arena-hp-bar-track {
+            width: 100%;
+            height: 5px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .arena-hp-bar-fill {
+            height: 100%;
+            width: 100%;
+            background: #10b981;
+            transition: width 0.3s ease, background 0.3s ease;
+        }
+        .entity-hp-text {
+            font-size: clamp(6.5px, 0.55vw, 9.5px);
+            color: #94a3b8;
+            text-align: right;
+            font-weight: 600;
+        }
+        .battle-moves-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: clamp(2px, 0.4vw, 5px);
+        }
+        .catch-balls-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 3px;
+        }
+        .btn-catch-ball {
+            background: rgba(30, 41, 59, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            padding: 3px 6px;
+            border-radius: 6px;
+            font-size: clamp(7.5px, 0.65vw, 11px);
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn-catch-ball:hover:not(:disabled) {
+            transform: scale(1.03);
+            border-color: #fbbf24;
+        }
+        .btn-catch-ball:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .arena-log-ticker {
+            background: rgba(10, 15, 30, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            padding: 3px 6px;
+            font-size: clamp(7.5px, 0.65vw + 0.2vh, 11px);
+            color: #cbd5e1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .moves-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 3px;
+            margin-top: 2px;
+        }
+
+        .move-pill {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 5px;
+            padding: 2px 4px;
+            font-size: 7.5px;
+            color: #cbd5e1;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.15s;
+        }
+
+        .move-pill:hover {
+            border-color: #38bdf8;
+            background: rgba(56, 189, 248, 0.15);
+            color: #fff;
+        }
+
+        /* Tools Row */
+        .tools-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 3px;
+            margin-top: 3px;
+        }
+
+        .tool-btn {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            color: #94a3b8;
+            font-size: 7.5px;
+            padding: 3px 0;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-align: center;
+        }
+
+        .tool-btn:hover {
+            background: rgba(99, 102, 241, 0.2);
+            color: #f1f5f9;
+        }
+
+        /* Modal Overlays */
+        .modal-overlay {
+            -webkit-app-region: no-drag !important;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 15, 30, 0.92);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            border-radius: 18px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        .modal-card {
+            -webkit-app-region: no-drag !important;
+            width: 100%;
+            background: rgba(30, 41, 59, 0.95);
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            border-radius: 12px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .modal-title {
+            font-size: 10px;
+            font-weight: 800;
+            color: #fbbf24;
+            text-align: center;
+        }
+
+        .branch-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 4px;
+            max-height: 180px;
+            overflow-y: auto;
+            margin-top: 4px;
+        }
+
+        .branch-item {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .branch-item:hover {
+            border-color: #fbbf24;
+            transform: scale(1.05);
+            background: rgba(245, 158, 11, 0.15);
+        }
+
+        /* Walker Alert Pill on Desktop */
+        .walker-alert {
+            display: none;
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #ef4444, #f59e0b);
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 7.5px;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
+            animation: pulse-alert 1s infinite alternate;
+            z-index: 50;
+            white-space: nowrap;
+        }
+
+        @keyframes pulse-alert {
+            0% { transform: translateX(-50%) scale(0.95); }
+            100% { transform: translateX(-50%) scale(1.08); }
+        }
+
+        /* Walker Mode Frameless Window */
+        body.walker-active {
+            padding: 0 !important;
+            margin: 0 !important;
+            background: transparent !important;
+            -webkit-app-region: no-drag !important;
+            cursor: pointer !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            overflow: hidden !important;
+        }
+
+        body.walker-active .pet-card {
+            width: 86px !important;
+            height: 86px !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            -webkit-app-region: no-drag !important;
+            cursor: pointer !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+
+        body.walker-active .modal-overlay,
+        body.walker-active .pet-header,
+        body.walker-active .party-bar,
+        body.walker-active .pokemon-name,
+        body.walker-active .nature-tag,
+        body.walker-active .evo-target-tag,
+        body.walker-active .token-badge,
+        body.walker-active .progress-section,
+        body.walker-active .quick-actions,
+        body.walker-active .drawer-container,
+        body.walker-active .sprite-glow,
+        body.walker-active .walker-encounter-arena,
+        .walker-encounter-arena {
+            display: none !important;
+        }
+
+        body.walker-active .sprite-stage,
+        body.in-encounter .sprite-stage {
+            width: 86px !important;
+            height: 86px !important;
+            margin: 0 !important;
+            background: transparent !important;
+            filter: none !important;
+            -webkit-app-region: no-drag !important;
+            cursor: pointer !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            position: relative !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        /* Direction-aware sprite with NO moonwalking */
+        body.walker-active .pokemon-sprite,
+        body.in-encounter .pokemon-sprite {
+            width: 76px !important;
+            height: 76px !important;
+            max-width: 76px !important;
+            max-height: 76px !important;
+            margin: 0 !important;
+            object-fit: contain !important;
+            image-rendering: pixelated !important;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.45)) !important;
+            animation: walk-bob 0.5s infinite ease-in-out !important;
+            transform: var(--sprite-flip, scaleX(1)) !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+        body.walker-active.is-resting .pokemon-sprite {
+            animation: none !important;
+            transform: var(--sprite-flip, scaleX(1)) scale(0.96) !important;
+        }
+
+        body.walker-active.is-resting .sleep-bubble {
+            display: block !important;
+        }
+
+        @keyframes walk-bob {
+            0%, 100% { transform: var(--sprite-flip, scaleX(1)) translateY(0); }
+            50% { transform: var(--sprite-flip, scaleX(1)) translateY(-5px); }
+        }
+
+        .walker-encounter-header {
+            display: flex;
+            width: 100%;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 4px;
+            margin-top: 1px;
+        }
+
+        .walker-encounter-title {
+            font-size: 8px;
+            font-weight: 800;
+            color: #f59e0b;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .walker-encounter-shiny-badge {
+            font-size: 7px;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: #000;
+            padding: 1px 4px;
+            border-radius: 4px;
+            font-weight: 900;
+        }
+
+        .walker-encounter-stage {
+            display: flex;
+            width: 100%;
+            align-items: center;
+            justify-content: space-around;
+            height: 52px;
+            margin: 1px 0;
+        }
+
+        .encounter-battler-box {
+            position: relative;
+            width: 62px;
+            height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .encounter-battler-box img {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+
+        .encounter-player-sprite {
+            animation: enc-ready-bob 0.6s infinite alternate ease-in-out;
+            cursor: pointer;
+            transform: scaleX(-1);
+        }
+
+        .walker-rival-sprite {
+            animation: enc-rival-bob 0.6s infinite alternate ease-in-out;
+            cursor: pointer;
+            transform: scaleX(1);
+            transition: transform 0.15s ease;
+        }
+
+        .walker-rival-sprite:hover {
+            transform: scaleX(1) scale(1.15) !important;
+        }
+
+        .encounter-exclamation {
+            position: absolute;
+            top: -6px;
+            font-size: 15px;
+            font-weight: 900;
+            color: #ef4444;
+            text-shadow: 0 0 6px #f59e0b, 0 0 2px #fff;
+            z-index: 10;
+            animation: jump-exclamation 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .encounter-vs-badge {
+            font-size: 11px;
+            font-weight: 900;
+            color: #ef4444;
+            text-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
+            animation: vs-pulse 0.9s infinite alternate;
+        }
+
+        .walker-encounter-actions {
+            display: flex;
+            width: 100%;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 2px;
+        }
+
+        .walker-btn-fight {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 6px;
+            padding: 2.5px 12px;
+            font-size: 8px;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+            transition: all 0.15s;
+        }
+
+        .walker-btn-fight:hover {
+            transform: scale(1.08);
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.9);
+        }
+
+        .walker-btn-flee {
+            background: rgba(51, 65, 85, 0.8);
+            color: #e2e8f0;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 6px;
+            padding: 2.5px 12px;
+            font-size: 8px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .walker-btn-flee:hover {
+            background: rgba(71, 85, 105, 0.9);
+            transform: scale(1.08);
+        }
+
+        /* Walker Encounter Approaching Stage Animation */
+        .walker-encounter-arena.approaching .encounter-player-sprite {
+            animation: player-walk-approach 1.1s cubic-bezier(0.25, 1, 0.5, 1) forwards, battler-walk-step 0.25s infinite ease-in-out !important;
+        }
+
+        .walker-encounter-arena.approaching .walker-rival-sprite {
+            animation: rival-walk-approach 1.1s cubic-bezier(0.25, 1, 0.5, 1) forwards, battler-walk-step 0.25s infinite ease-in-out !important;
+        }
+
+        .walker-encounter-arena.approaching .encounter-exclamation,
+        .walker-encounter-arena.approaching .encounter-vs-badge,
+        .walker-encounter-arena.approaching .walker-encounter-actions {
+            opacity: 0 !important;
+            pointer-events: none !important;
+            transform: scale(0.6) !important;
+        }
+
+        .walker-encounter-arena.face-off .encounter-player-sprite {
+            animation: enc-ready-bob 0.6s infinite alternate ease-in-out !important;
+        }
+
+        .walker-encounter-arena.face-off .walker-rival-sprite {
+            animation: enc-rival-bob 0.6s infinite alternate ease-in-out !important;
+        }
+
+        .walker-encounter-arena.face-off .encounter-exclamation {
+            opacity: 1 !important;
+            animation: jump-exclamation 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .walker-encounter-arena.face-off .encounter-vs-badge {
+            opacity: 1 !important;
+            animation: vs-pulse 0.9s infinite alternate;
+        }
+
+        .walker-encounter-arena.face-off .walker-encounter-actions {
+            opacity: 1 !important;
+            transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform: scale(1) !important;
+        }
+
+        @keyframes player-walk-approach {
+            0% { transform: scaleX(-1) translateX(65px); opacity: 0.3; }
+            50% { opacity: 1; }
+            100% { transform: scaleX(-1) translateX(0); opacity: 1; }
+        }
+
+        @keyframes rival-walk-approach {
+            0% { transform: scaleX(1) translateX(65px); opacity: 0.3; }
+            50% { opacity: 1; }
+            100% { transform: scaleX(1) translateX(0); opacity: 1; }
+        }
+
+        @keyframes battler-walk-step {
+            0%, 100% { margin-top: 0px; }
+            50% { margin-top: -3px; }
+        }
+
+        @keyframes enc-ready-bob {
+            0% { transform: scaleX(-1) translateY(0); }
+            100% { transform: scaleX(-1) translateY(-3px); }
+        }
+
+        @keyframes enc-rival-bob {
+            0% { transform: scaleX(1) translateY(0); }
+            100% { transform: scaleX(1) translateY(-3px); }
+        }
+
+        @keyframes jump-exclamation {
+            0% { transform: scale(0) translateY(8px); opacity: 0; }
+            50% { transform: scale(1.4) translateY(-12px); opacity: 1; }
+            80% { transform: scale(0.9) translateY(-4px); opacity: 1; }
+            100% { transform: scale(1.1) translateY(-6px); opacity: 1; }
+        }
+
+        @keyframes vs-pulse {
+            0% { transform: scale(0.9); opacity: 0.8; }
+            100% { transform: scale(1.2); opacity: 1; }
+        }
+
+        /* Floating Walker Bubbles (+XP / Items) */
+        .walker-floating-bubble {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(251, 191, 36, 0.8);
+            color: #fbbf24;
+            font-size: 8px;
+            font-weight: 800;
+            padding: 2px 7px;
+            border-radius: 10px;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 100;
+            box-shadow: 0 0 10px rgba(251, 191, 36, 0.6);
+            animation: float-bubble-up 2.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        .walker-floating-bubble.exp-bubble {
+            border-color: rgba(34, 197, 94, 0.8);
+            color: #4ade80;
+            box-shadow: 0 0 10px rgba(34, 197, 94, 0.6);
+        }
+
+        @keyframes float-bubble-up {
+            0% { transform: translate(-50%, 6px) scale(0.7); opacity: 0; }
+            20% { transform: translate(-50%, -4px) scale(1.05); opacity: 1; }
+            80% { transform: translate(-50%, -14px) scale(1); opacity: 1; }
+            100% { transform: translate(-50%, -24px) scale(0.85); opacity: 0; }
+        }
+
+        /* Battle Arena Sketch (Matching User's Drawing) */
+        .battle-arena-sketch {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            background: radial-gradient(circle at 50% 20%, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.98));
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            border-radius: 12px;
+            padding: 6px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .battle-top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 2px;
+        }
+
+        .battle-top-left-controls {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .battle-ctrl-btn {
+            background: rgba(30, 41, 59, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #e2e8f0;
+            font-size: 7.5px;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .battle-ctrl-btn:hover {
+            background: rgba(51, 65, 85, 0.95);
+            border-color: rgba(99, 102, 241, 0.6);
+            transform: scale(1.05);
+        }
+
+        .battle-ctrl-btn.active {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-color: #818cf8;
+            color: #fff;
+            box-shadow: 0 0 8px rgba(99, 102, 241, 0.6);
+        }
+
+        .battle-turn-indicator {
+            font-size: 7.5px;
+            font-weight: 800;
+            color: #94a3b8;
+        }
+
+        /* 2-Corner Arena matching sketch */
+        .battle-sketch-arena {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 6px;
+            width: 100%;
+        }
+
+        .sketch-battler {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        /* Top Right: Rival */
+        .sketch-battler.sketch-rival {
+            grid-column: 2;
+            grid-row: 1;
+            align-items: flex-end;
+            text-align: right;
+        }
+
+        /* Bottom Left: Player */
+        .sketch-battler.sketch-player {
+            grid-column: 1;
+            grid-row: 2;
+            align-items: flex-start;
+            text-align: left;
+        }
+
+        .sketch-hp-container {
+            display: flex;
+            flex-direction: column;
+            width: 85px;
+            gap: 1px;
+        }
+
+        .sketch-battler.sketch-rival .sketch-hp-container {
+            align-items: flex-end;
+        }
+
+        .sketch-hp-track {
+            width: 100%;
+            height: 5px;
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 3px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sketch-hp-fill {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #10b981, #22c55e);
+            border-radius: 3px;
+            transition: width 0.35s ease, background 0.35s ease;
+        }
+
+        .sketch-hp-text {
+            font-size: 6.5px;
+            color: #94a3b8;
+            font-weight: 700;
+        }
+
+        .sketch-avatar-circle {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(51, 65, 85, 0.6), rgba(15, 23, 42, 0.9));
+            border: 1.5px solid rgba(99, 102, 241, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            margin: 2px 0;
+        }
+
+        .sketch-avatar-circle.rival-circle {
+            border-color: rgba(239, 68, 68, 0.6);
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .sketch-avatar-circle.player-circle {
+            border-color: rgba(56, 189, 248, 0.6);
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+        }
+
+        .sketch-avatar-circle img {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+            image-rendering: pixelated;
+            transition: transform 0.2s ease;
+        }
+
+        .sketch-battler.sketch-rival img {
+            animation: rival-battle-bob 1s infinite alternate ease-in-out;
+        }
+
+        .sketch-battler.sketch-player img {
+            transform: scaleX(-1);
+            animation: player-battle-bob 1s infinite alternate ease-in-out;
+        }
+
+        @keyframes rival-battle-bob {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-3px); }
+        }
+
+        @keyframes player-battle-bob {
+            0% { transform: scaleX(-1) translateY(0); }
+            100% { transform: scaleX(-1) translateY(-3px); }
+        }
+
+        .sketch-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sketch-name {
+            font-size: 8px;
+            font-weight: 800;
+            color: #f8fafc;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        }
+
+        .sketch-level {
+            font-size: 7px;
+            font-weight: 700;
+            color: #fbbf24;
+        }
+
+        /* Bottom Right: Action Box (Rectangle matching sketch) */
+        .sketch-action-box {
+            grid-column: 2;
+            grid-row: 2;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1.5px solid rgba(99, 102, 241, 0.4);
+            border-radius: 8px;
+            padding: 3px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 80px;
+        }
+
+        .sketch-moves-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 3px;
+            height: 56px;
+        }
+
+        .sketch-move-btn {
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 5px;
+            padding: 2px 4px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.12s ease;
+        }
+
+        .sketch-move-btn:hover:not(:disabled) {
+            background: rgba(51, 65, 85, 0.95);
+            border-color: #818cf8;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+        }
+
+        .sketch-move-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .sketch-move-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .sketch-move-name {
+            font-size: 7px;
+            font-weight: 800;
+            color: #f8fafc;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 50px;
+        }
+
+        .sketch-move-type {
+            font-size: 6px;
+            padding: 0.5px 3px;
+            border-radius: 3px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .sketch-move-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .sketch-move-pp {
+            font-size: 6px;
+            color: #94a3b8;
+            font-weight: 700;
+        }
+
+        .sketch-move-pwr {
+            font-size: 6px;
+            color: #fbbf24;
+            font-weight: 700;
+        }
+
+        .sketch-quick-tools {
+            display: flex;
+            gap: 2px;
+            margin-top: 2px;
+        }
+
+        .sketch-tool-btn {
+            flex: 1;
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #cbd5e1;
+            font-size: 6.5px;
+            font-weight: 700;
+            padding: 2px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.12s;
+        }
+
+        .sketch-tool-btn:hover {
+            background: rgba(51, 65, 85, 0.9);
+            color: #fff;
+        }
+
+        .sketch-tool-btn.btn-flee:hover {
+            background: rgba(239, 68, 68, 0.6);
+            border-color: #ef4444;
+        }
+
+        /* Catch Phase Section */
+        .catch-header {
+            font-size: 7px;
+            font-weight: 800;
+            color: #fbbf24;
+            text-align: center;
+            margin-bottom: 2px;
+        }
+
+        .catch-balls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3px;
+            margin-bottom: 2px;
+        }
+
+        .ball-catch-btn {
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 5px;
+            padding: 3px 4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            position: relative;
+        }
+
+        .ball-catch-btn:hover:not(:disabled) {
+            transform: scale(1.04);
+            box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+            border-color: #fbbf24;
+        }
+
+        .ball-catch-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        .ball-catch-btn .ball-name {
+            font-size: 6.5px;
+            font-weight: 800;
+            color: #f8fafc;
+        }
+
+        .ball-catch-btn .ball-count {
+            font-size: 6.5px;
+            font-weight: 700;
+            color: #38bdf8;
+        }
+
+        .ball-rate-pill {
+            font-size: 6px;
+            background: rgba(34, 197, 94, 0.3);
+            color: #4ade80;
+            padding: 0.5px 3px;
+            border-radius: 3px;
+            font-weight: 900;
+            border: 0.5px solid rgba(74, 222, 128, 0.4);
+        }
+
+        .sketch-finish-catch-btn {
+            width: 100%;
+            background: rgba(51, 65, 85, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #cbd5e1;
+            font-size: 6.5px;
+            font-weight: 800;
+            padding: 2.5px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 1px;
+        }
+
+        .sketch-finish-catch-btn:hover {
+            background: rgba(71, 85, 105, 0.9);
+            color: #fff;
+        }
+
+        /* Battle Log Ticker */
+        .battle-log-ticker {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 4px;
+            padding: 2px 4px;
+            font-size: 6.5px;
+            color: #94a3b8;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-height: 12px;
+        }
+
+        .battle-switch-overlay {
+            position: absolute;
+            top: 25px;
+            left: 6px;
+            right: 6px;
+            bottom: 6px;
+            background: rgba(15, 23, 42, 0.96);
+            border: 1px solid rgba(99, 102, 241, 0.5);
+            border-radius: 8px;
+            padding: 5px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            z-index: 50;
+        }
+
+        .battle-switch-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 8px;
+            font-weight: 800;
+            color: #38bdf8;
+        }
+
+        .battle-switch-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            overflow-y: auto;
+            max-height: 120px;
+        }
+
+        /* Settings Modal & Switches */
+        .setting-item {
+            -webkit-app-region: no-drag !important;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.15s ease;
+        }
+
+        .setting-item:hover {
+            background: rgba(51, 65, 85, 0.85) !important;
+            border-color: rgba(99, 102, 241, 0.3) !important;
+        }
+
+        .switch-toggle {
+            -webkit-app-region: no-drag !important;
+            position: relative;
+            display: inline-block;
+            width: 32px;
+            height: 18px;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        .switch-toggle input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            z-index: 10;
+            margin: 0;
+        }
+
+        .slider {
+            -webkit-app-region: no-drag !important;
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #334155;
+            transition: .2s ease;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            pointer-events: none;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 12px;
+            width: 12px;
+            left: 2px;
+            bottom: 2px;
+            background-color: #f8fafc;
+            transition: .2s ease;
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        }
+
+        .switch-toggle input:checked + .slider {
+            background-color: #10b981;
+        }
+
+        .switch-toggle input:checked + .slider:before {
+            transform: translateX(14px);
+        }
+
+        /* ========================================================
+           AUTHENTIC GBA-STYLE PC BOX (Foto 5: Hoenn/FireRed Style)
+           ======================================================== */
+        .gba-pc-wrapper {
+            display: flex;
+            gap: 6px;
+            width: 100%;
+            height: 100%;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        /* Columna Izquierda: Ficha de Inspección Retro Ampliada (Estilo GBA Foto 1) */
+        .gba-pc-inspector {
+            width: clamp(220px, 30vw, 360px);
+            min-width: 210px;
+            max-width: 380px;
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            border: 2px solid #475569;
+            border-radius: 10px;
+            padding: clamp(6px, 1vh, 10px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.6), 0 4px 14px rgba(0, 0, 0, 0.4);
+            flex-shrink: 0;
+            overflow-y: auto;
+            height: 100%;
+            min-height: 0;
+        }
+
+        .gba-pc-inspector::-webkit-scrollbar {
+            width: 4px;
+        }
+        .gba-pc-inspector::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 4px;
+        }
+
+        /* Cabecera Superior del Inspector: Nombre del Pokémon */
+        .gba-insp-header {
+            width: 100%;
+            background: #f1f5f9;
+            border: 2px solid #334155;
+            border-radius: 6px;
+            padding: 3px 6px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: clamp(4px, 0.8vh, 8px);
+            box-shadow: inset 0 1px 2px rgba(255,255,255,0.8), 0 2px 4px rgba(0,0,0,0.3);
+            flex-shrink: 0;
+        }
+
+        .gba-insp-name {
+            font-size: clamp(12px, 1.1vw, 15px);
+            font-weight: 900;
+            color: #0f172a;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+            letter-spacing: 0.5px;
+        }
+
+        /* Escenario de Exhibición del Sprite (Grande, Nítido, Tipo Vitrina GBA) */
+        .gba-insp-stage {
+            position: relative;
+            width: 100%;
+            flex: 1 1 auto;
+            min-height: clamp(100px, 14vh, 160px);
+            max-height: clamp(150px, 22vh, 230px);
+            background: radial-gradient(circle, rgba(241, 245, 249, 0.95) 0%, rgba(203, 213, 225, 0.9) 100%);
+            border: 3px solid #334155;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: clamp(3px, 0.6vh, 6px);
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.25), 0 3px 8px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .gba-insp-sprite {
+            width: 90%;
+            height: 90%;
+            max-width: 95%;
+            max-height: 95%;
+            object-fit: contain;
+            image-rendering: pixelated;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.35));
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .gba-insp-sprite:hover {
+            transform: scale(1.08);
+        }
+
+        .gba-insp-level-row {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            flex-shrink: 0;
+            gap: 4px;
+        }
+
+        .gba-insp-level {
+            font-size: clamp(9px, 0.85vw, 11px);
+            font-weight: 900;
+            color: #38bdf8;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            letter-spacing: 0.5px;
+        }
+
+        .gba-insp-types {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .gba-type-pill {
+            font-size: clamp(7.5px, 0.75vw, 9.5px);
+            font-weight: 900;
+            text-transform: uppercase;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #ffffff;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            border: 1px solid rgba(255,255,255,0.4);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .gba-insp-details {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 6px;
+            padding: clamp(4px, 0.8vh, 6px) clamp(6px, 1vw, 8px);
+            font-size: clamp(8px, 0.8vw, 10px);
+            color: #cbd5e1;
+            display: flex;
+            flex-direction: column;
+            gap: 2.5px;
+            margin-bottom: clamp(4px, 0.8vh, 8px);
+            flex-shrink: 0;
+        }
+
+        .gba-insp-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .gba-insp-actions {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            margin-top: auto;
+            flex-shrink: 0;
+        }
+
+        .btn-gba-action {
+            width: 100%;
+            padding: clamp(3px, 0.7vh, 5px);
+            font-size: clamp(8px, 0.8vw, 10px);
+            font-weight: 800;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transition: all 0.15s ease;
+            text-align: center;
+        }
+
+        .btn-gba-action.primary {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+        }
+        .btn-gba-action.primary:hover {
+            background: linear-gradient(135deg, #34d399, #10b981);
+            transform: translateY(-1px);
+        }
+
+        .btn-gba-action.secondary {
+            background: rgba(51, 65, 85, 0.8);
+            color: #cbd5e1;
+        }
+        .btn-gba-action.secondary:hover {
+            background: rgba(71, 85, 105, 0.9);
+            color: #ffffff;
+        }
+
+        .btn-gba-action.warning {
+            background: linear-gradient(135deg, #d97706, #b45309);
+            color: #ffffff;
+            border: 1px solid #f59e0b;
+        }
+        .btn-gba-action.warning:hover {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            transform: translateY(-1px);
+        }
+
+        /* Columna Derecha: Cuadrícula GBA de 30 Casillas (6x5) */
+        .gba-pc-box-container {
+            flex: 1;
+            min-width: 0;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .gba-box-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(180deg, #3b82f6, #1d4ed8);
+            padding: 3px 6px;
+            border-bottom: 2px solid #1e3a8a;
+            color: #ffffff;
+            font-weight: 900;
+            font-size: 9.5px;
+            letter-spacing: 0.5px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+            flex-shrink: 0;
+        }
+
+        .gba-box-nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 900;
+            width: 20px;
+            height: 18px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+        .gba-box-nav-btn:hover {
+            background: rgba(255, 255, 255, 0.35);
+            transform: scale(1.05);
+        }
+
+        /* Cuadrícula Retro con Papel Tapiz Checkered de GBA */
+        .gba-box-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 2.5px;
+            padding: 4px;
+            background-color: #0f766e;
+            background-image: 
+                linear-gradient(45deg, #115e59 25%, transparent 25%), 
+                linear-gradient(-45deg, #115e59 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #115e59 75%), 
+                linear-gradient(-45deg, transparent 75%, #115e59 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            overflow-y: auto;
+            align-content: stretch;
+            min-height: 0;
+        }
+
+        .gba-box-slot {
+            position: relative;
+            background: rgba(15, 23, 42, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.1s ease, border-color 0.1s ease, background 0.1s ease;
+            min-height: 24px;
+            height: 100%;
+        }
+
+        .gba-box-slot:hover {
+            background: rgba(56, 189, 248, 0.25);
+            border-color: #38bdf8;
+            transform: scale(1.06);
+            z-index: 5;
+        }
+
+        .gba-box-slot.selected {
+            background: rgba(251, 191, 36, 0.3) !important;
+            border: 2px solid #fbbf24 !important;
+            box-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
+            z-index: 10;
+        }
+
+        /* Retro Glove Cursor 👆 */
+        .gba-box-slot.selected::after {
+            content: "👆";
+            position: absolute;
+            top: -11px;
+            right: -5px;
+            font-size: 12px;
+            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.8));
+            animation: gba-glove-bounce 0.8s infinite alternate ease-in-out;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        @keyframes gba-glove-bounce {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-4px); }
+        }
+
+        .gba-box-slot img {
+            width: 82%;
+            height: 82%;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+
+        .gba-box-slot.empty {
+            opacity: 0.35;
+            background: rgba(0, 0, 0, 0.2);
+            cursor: default;
+        }
+        .gba-box-slot.empty:hover {
+            transform: none;
+            border-color: rgba(255, 255, 255, 0.12);
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        /* HTML5 Drag & Drop Feedback */
+        .party-slot.dragging, .gba-box-slot.dragging {
+            opacity: 0.45 !important;
+            transform: scale(0.92) !important;
+            border-style: dashed !important;
+        }
+
+        .party-slot.drag-over, .gba-box-slot.drag-over {
+            border: 2px dashed #38bdf8 !important;
+            background: rgba(56, 189, 248, 0.35) !important;
+            transform: scale(1.15) !important;
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.7);
+        }
+
+        /* Pokédex Mastery Badge (Level 100 Stars ⭐) */
+        .dex-mastery-badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: #ffffff;
+            font-size: 6.5px;
+            font-weight: 900;
+            padding: 1px 3.5px;
+            border-radius: 8px;
+            border: 0.5px solid #fef08a;
+            box-shadow: 0 1px 4px rgba(245, 158, 11, 0.6);
+            display: flex;
+            align-items: center;
+            gap: 1px;
+        }
+
+        /* Floating Notifications without Top Clipping */
+        .walker-floating-bubble {
+            display: none;
+            position: absolute;
+            top: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.96);
+            border: 1.5px solid #38bdf8;
+            border-radius: 12px;
+            color: #f8fafc;
+            padding: 3px 10px;
+            font-size: 8.5px;
+            font-weight: 800;
+            white-space: nowrap;
+            z-index: 999;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), 0 0 10px rgba(56, 189, 248, 0.4);
+            pointer-events: none;
+            text-align: center;
+        }
+        .walker-floating-bubble.exp-bubble {
+            border-color: #10b981;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), 0 0 10px rgba(16, 185, 129, 0.4);
+            color: #6ee7b7;
+        }
+        @keyframes float-bubble-up {
+            0% { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.85); }
+            15% { opacity: 1; transform: translateX(-50%) translateY(0px) scale(1.05); }
+            25% { transform: translateX(-50%) translateY(0px) scale(1); }
+            80% { opacity: 1; transform: translateX(-50%) translateY(-3px) scale(1); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-10px) scale(0.9); }
+        }
+
+        /* Species Potential & IV Rank Badges */
+        .rank-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1px 4px;
+            border-radius: 4px;
+            font-size: 7.5px;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+            text-transform: uppercase;
+        }
+        .rank-f { background: #475569; color: #f1f5f9; border: 1px solid #64748b; }
+        .rank-e { background: #334155; color: #94a3b8; border: 1px solid #475569; }
+        .rank-d { background: #065f46; color: #6ee7b7; border: 1px solid #059669; }
+        .rank-c { background: #0369a1; color: #7dd3fc; border: 1px solid #0284c7; }
+        .rank-b { background: #4338ca; color: #a5b4fc; border: 1px solid #4f46e5; }
+        .rank-a { background: #6b21a8; color: #d8b4fe; border: 1px solid #7e22ce; }
+        .rank-s { background: #b45309; color: #fef08a; border: 1px solid #f59e0b; box-shadow: 0 0 6px rgba(245, 158, 11, 0.6); }
+        .rank-ss { background: #991b1b; color: #fecaca; border: 1px solid #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.7); }
+        .rank-sss { background: linear-gradient(135deg, #ec4899, #8b5cf6, #3b82f6); color: #ffffff; border: 1px solid #fdf2f8; box-shadow: 0 0 10px rgba(236, 72, 153, 0.9); animation: sss-glow 1.5s infinite alternate; }
+
+        @keyframes sss-glow {
+            0% { filter: drop-shadow(0 0 2px #ec4899); }
+            100% { filter: drop-shadow(0 0 8px #8b5cf6); }
+        }
+
+        /* Pokédex Draggable Cell */
+        .dex-card.discovered {
+            cursor: pointer;
+        }
+        .dex-card.discovered:hover {
+            transform: scale(1.06);
+            border-color: #38bdf8 !important;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+        }
+
+        /* Window Control Buttons */
+        .btn-win-ctrl {
+            font-size: clamp(9px, 0.8vw, 12px);
+            padding: 2px 5px;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .btn-win-close:hover {
+            background: rgba(239, 68, 68, 0.85) !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+        }
+
+        /* Responsive Dex Details Modal */
+        .dex-details-card {
+            width: min(92vw, clamp(260px, 46vw, 480px)) !important;
+            max-height: min(92vh, 620px) !important;
+            padding: clamp(8px, 1.2vw, 16px) !important;
+            gap: clamp(4px, 0.8vh, 10px) !important;
+            overflow-y: auto;
+        }
+        .dex-modal-sprite {
+            width: clamp(44px, 8vw, 84px) !important;
+            height: clamp(44px, 8vw, 84px) !important;
+        }
+        .dex-modal-title {
+            font-size: clamp(10px, 1.1vw, 17px) !important;
+        }
+        .dex-modal-num {
+            font-size: clamp(8px, 0.9vw, 13px) !important;
+        }
+        .dex-modal-text {
+            font-size: clamp(7px, 0.8vw, 12px) !important;
+        }
+        .dex-modal-stat-bar {
+            height: clamp(3px, 0.5vh, 6px) !important;
+        }
+        .dex-modal-flavor {
+            font-size: clamp(7px, 0.8vw, 12px) !important;
+            line-height: 1.35 !important;
+            max-height: clamp(36px, 8vh, 80px) !important;
+        }
+        .dex-modal-btn {
+            font-size: clamp(7.5px, 0.85vw, 13px) !important;
+            padding: clamp(3px, 0.6vh, 8px) clamp(5px, 0.8vw, 12px) !important;
+        }
+
+        /* GBA Box Regional & Shiny Filters Bar */
+        .gba-filters-bar {
+            display: flex;
+            gap: 3px;
+            width: 100%;
+            overflow-x: auto;
+            padding-bottom: 2px;
+            margin-bottom: 3px;
+        }
+        .gba-filters-bar::-webkit-scrollbar {
+            height: 3px;
+        }
+        .gba-filters-bar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+        }
+        .gba-filter-btn {
+            background: rgba(30, 41, 59, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #94a3b8;
+            font-size: clamp(7px, 0.65vw, 10px);
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.15s;
+        }
+        .gba-filter-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: #f8fafc;
+        }
+        .gba-filter-btn.active {
+            background: #3b82f6;
+            border-color: #60a5fa;
+            color: #ffffff;
+            box-shadow: 0 0 6px rgba(59, 130, 246, 0.4);
+        }
+        .gba-filter-btn.shiny-tab-btn.active {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            border-color: #fbbf24;
+            color: #ffffff;
+            box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+        }
+        .gba-box-grid.shiny-box-active {
+            background: radial-gradient(circle at 50% 50%, rgba(245, 158, 11, 0.2), rgba(15, 23, 42, 0.95)) !important;
+            border-color: rgba(245, 158, 11, 0.5) !important;
+            box-shadow: inset 0 0 15px rgba(245, 158, 11, 0.25) !important;
+        }
+
+        /* Maximized Window Styles */
+        body.window-maximized {
+            padding: 0 !important;
+        }
+        body.window-maximized .pet-card {
+            border-radius: 0 !important;
+            max-width: 100vw !important;
+            max-height: 100vh !important;
+            height: 100vh !important;
+            width: 100vw !important;
+            padding: 12px 18px !important;
+        }
+        body.window-maximized .drawer-container {
+            flex: 1 !important;
+            min-height: 0 !important;
+        }
+        body.window-maximized .tab-pane {
+            gap: 10px !important;
+        }
+        body.window-maximized .gba-pc-wrapper {
+            gap: 16px !important;
+        }
+        body.window-maximized .gba-box-slot {
+            width: clamp(44px, 5.5vw, 68px) !important;
+            height: clamp(44px, 5.5vw, 68px) !important;
+        }
+        body.window-maximized .gba-pc-inspector {
+            width: clamp(280px, 28vw, 400px) !important;
+            max-width: 420px !important;
+        }
+        body.window-maximized .sprite-stage {
+            height: clamp(65px, 10vh, 100px) !important;
+            margin-bottom: 2px !important;
+        }
+        body.window-maximized .pokemon-sprite {
+            width: clamp(60px, 9vh, 95px) !important;
+            height: clamp(60px, 9vh, 95px) !important;
+        }
+        body.window-maximized .token-badge {
+            margin-bottom: 2px !important;
+            padding: 2px 8px !important;
+        }
+        body.window-maximized .quick-actions-bar {
+            margin-bottom: 3px !important;
+        }
+        body.window-maximized .gba-insp-stage {
+            min-height: clamp(110px, 15vh, 180px) !important;
+            max-height: clamp(150px, 22vh, 230px) !important;
+        }
+        body.window-maximized .gba-insp-sprite {
+            max-width: 95% !important;
+            max-height: 95% !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="pet-card" id="petCard">
+        <!-- Wild Encounter Alert on Walker -->
+        <div id="walkerAlert" class="walker-alert">⚔️ ¡Combate Salvaje!</div>
+
+        <!-- Mini Modal: Selector de Reemplazo cuando el equipo está 6/6 -->
+        <div class="modal-overlay" id="swapModalOverlay" style="display: none;">
+            <div class="modal-card">
+                <div class="modal-title">¿A quién deseas reemplazar?</div>
+                <div style="font-size: 8px; color: #94a3b8; text-align: center;">Haz clic en una ranura para colocar al Pokémon seleccionado</div>
+                <div id="swapSlotsList" style="display:flex; flex-direction:column; gap:3px; max-height:140px; overflow-y:auto; margin-top:3px;"></div>
+                <button class="action-btn" id="btnCancelSwap" style="margin-top: 5px; width: 100%; background: rgba(239,68,68,0.4); border-color: rgba(239,68,68,0.6);">Cancelar</button>
+            </div>
+        </div>
+
+        <!-- Modal: Selector de Ramas Evolutivas (Eevee, Ralts, etc.) -->
+        <div class="modal-overlay" id="branchModalOverlay" style="display: none;">
+            <div class="modal-card">
+                <div class="modal-title" id="branchModalTitle">¡Elige tu Evolución!</div>
+                <div style="font-size: 7.5px; color: #94a3b8; text-align: center;">Esta evolución es definitiva para este ejemplar. Para otras ramas, cría otro ejemplar.</div>
+                <div id="branchCardsContainer" class="branch-grid"></div>
+                <button class="action-btn" id="btnCancelBranch" style="margin-top: 5px; width: 100%; background: rgba(148,163,184,0.3);">Decidir Más Tarde</button>
+            </div>
+        </div>
+
+        <!-- Modal: Aprendizaje y Reemplazo de Ataques (Pool de 4) -->
+        <div class="modal-overlay" id="moveLearnModalOverlay" style="display: none;">
+            <div class="modal-card">
+                <div class="modal-title" id="moveLearnTitle">¡Nuevo Ataque Desbloqueado!</div>
+                <div style="font-size: 8px; color: #38bdf8; text-align: center; font-weight:700;" id="newMoveInfo">Ataque: [Nombre]</div>
+                <div style="font-size: 7.5px; color: #94a3b8; text-align: center;">Tu Pokémon ya conoce 4 movimientos. Selecciona cuál olvidar para hacerle espacio:</div>
+                <div id="currentMovesToReplaceList" style="display:flex; flex-direction:column; gap:3px; margin-top:4px;"></div>
+                <button class="action-btn" id="btnCancelMoveLearn" style="margin-top: 5px; width: 100%; background: rgba(239,68,68,0.4);">No Aprender Ahora</button>
+            </div>
+        </div>
+
+        <!-- Modal: Ficha Detallada de Pokédex (PokeAPI + Esencia + Rango) -->
+        <div class="modal-overlay" id="dexDetailsModal" style="display: none;">
+            <div class="modal-card dex-details-card">
+                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span id="modalDexNumber" class="dex-modal-num" style="color: #94a3b8; font-weight: 700;">#001</span>
+                        <span id="modalDexName" class="dex-modal-title" style="font-weight: 800; color: #f8fafc;">Bulbasaur</span>
+                        <span id="modalDexRankBadge" class="rank-badge rank-f">F</span>
+                    </div>
+                    <button id="btnCloseDexModalX" style="background:none; border:none; color:#94a3b8; font-size:clamp(12px, 1.2vw, 18px); cursor:pointer;">✕</button>
+                </div>
+
+                <!-- Top Profile: Sprite, Types, Info -->
+                <div style="display: flex; gap: 8px; align-items: center; background: rgba(30,41,59,0.6); padding: 6px 8px; border-radius: 8px;">
+                    <img id="modalDexSprite" class="dex-modal-sprite" src="" style="object-fit: contain; image-rendering: pixelated; background: rgba(0,0,0,0.25); border-radius: 6px; padding: 2px;">
+                    <div style="display: flex; flex-direction: column; gap: 3px; flex: 1;">
+                        <div id="modalDexTypes" style="display: flex; gap: 3px;"></div>
+                        <div class="dex-modal-text" style="color: #94a3b8;">
+                            <span>Altura: <strong id="modalDexHeight" style="color:#f8fafc;">--</strong></span> | 
+                            <span>Peso: <strong id="modalDexWeight" style="color:#f8fafc;">--</strong></span>
+                        </div>
+                        <div class="dex-modal-text" style="color: #94a3b8;">
+                            <span>Habilidad: <strong id="modalDexAbility" style="color:#38bdf8;">--</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Base Stats Bar -->
+                <div style="background: rgba(15,23,42,0.7); padding: 6px; border-radius: 8px; display: flex; flex-direction: column; gap: 3px;">
+                    <div style="display: flex; justify-content: space-between; color: #94a3b8;" class="dex-modal-text">
+                        <span>Estadísticas Base (PokeAPI)</span>
+                        <span id="modalDexStatTotal" style="color: #38bdf8; font-weight: 700;">BST: --</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 32px 1fr 24px; align-items: center; gap: 4px;" class="dex-modal-text">
+                        <span>PS</span>
+                        <div class="dex-modal-stat-bar" style="background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;"><div id="barDexHp" style="width: 0%; height: 100%; background: #10b981;"></div></div>
+                        <span id="valDexHp" style="text-align: right; color: #cbd5e1;">--</span>
+                        
+                        <span>ATK</span>
+                        <div class="dex-modal-stat-bar" style="background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;"><div id="barDexAtk" style="width: 0%; height: 100%; background: #ef4444;"></div></div>
+                        <span id="valDexAtk" style="text-align: right; color: #cbd5e1;">--</span>
+
+                        <span>DEF</span>
+                        <div class="dex-modal-stat-bar" style="background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;"><div id="barDexDef" style="width: 0%; height: 100%; background: #3b82f6;"></div></div>
+                        <span id="valDexDef" style="text-align: right; color: #cbd5e1;">--</span>
+
+                        <span>VEL</span>
+                        <div class="dex-modal-stat-bar" style="background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;"><div id="barDexSpd" style="width: 0%; height: 100%; background: #eab308;"></div></div>
+                        <span id="valDexSpd" style="text-align: right; color: #cbd5e1;">--</span>
+                    </div>
+                </div>
+
+                <!-- Flavor Text Description -->
+                <div id="modalDexFlavor" class="dex-modal-flavor" style="color: #94a3b8; font-style: italic; background: rgba(30,41,59,0.5); padding: 4px 6px; border-radius: 6px; overflow-y: auto;">
+                    Cargando descripción...
+                </div>
+
+                <!-- Potential & Essence Upgrades -->
+                <div style="background: rgba(30,41,59,0.6); border: 1px solid rgba(245,158,11,0.25); border-radius: 8px; padding: 6px; display: flex; flex-direction: column; gap: 3px;">
+                    <div style="display: flex; justify-content: space-between;" class="dex-modal-text">
+                        <span style="color: #fbbf24; font-weight: 700;">🧬 Esencia de Especie:</span>
+                        <span id="modalDexEssenceCount" style="color: #f8fafc; font-weight: 800;">0 / 1</span>
+                    </div>
+                    <div style="height: 4px; background: rgba(0,0,0,0.4); border-radius: 2px; overflow: hidden;">
+                        <div id="modalDexEssenceBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #f59e0b, #ef4444);"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; color: #94a3b8; margin-top: 1px;" class="dex-modal-text">
+                        <span id="modalDexBonusDesc">Bonus actual: +0% Stats</span>
+                        <button class="action-btn dex-modal-btn" id="btnUpgradeRankModal" style="background: linear-gradient(135deg, #f59e0b, #d97706); border: none; font-weight: 800; color:#fff;">⭐ Subir Rango</button>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 6px; margin-top: 3px;">
+                    <button class="action-btn dex-modal-btn" id="btnDeployFromModal" style="flex: 1; background: rgba(56,189,248,0.25); border-color: rgba(56,189,248,0.5); color: #38bdf8; font-weight: 800;">📥 Al Equipo</button>
+                    <button class="action-btn dex-modal-btn" id="btnCloseDexModal" style="flex: 1; background: rgba(148,163,184,0.2);">Cerrar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Ajustes del Juego (⚙️) -->
+        <div class="modal-overlay" id="settingsModalOverlay" style="display: none;">
+            <div class="modal-card" style="width: 215px; max-height: 285px; padding: 8px;">
+                <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between; font-size: 10px; margin-bottom: 6px;">
+                    <span>⚙️ Ajustes del Juego</span>
+                    <button id="btnCloseSettingsX" style="background:none; border:none; color:#94a3b8; font-size:11px; cursor:pointer;">✕</button>
+                </div>
+
+                <div class="settings-list" style="display: flex; flex-direction: column; gap: 5px;">
+                    <!-- Switch 1: Encuentros Salvajes -->
+                    <div class="setting-item" id="rowSettingEncounters" style="display: flex; align-items: center; justify-content: space-between; background: rgba(30,41,59,0.7); padding: 4px 6px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-size: 8px; font-weight: 800; color: #f8fafc;">🐾 Encuentros Salvajes</span>
+                            <span style="font-size: 6.5px; color: #94a3b8;">Aparecen rivales al pasear</span>
+                        </div>
+                        <label class="switch-toggle">
+                            <input type="checkbox" id="settingEncountersSwitch" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- Switch 2: Omitir Diálogo VS -->
+                    <div class="setting-item" id="rowSettingSkipVs" style="display: flex; align-items: center; justify-content: space-between; background: rgba(30,41,59,0.7); padding: 4px 6px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-size: 8px; font-weight: 800; color: #f8fafc;">⚡ Omitir Diálogo VS</span>
+                            <span style="font-size: 6.5px; color: #94a3b8;">Lucha automática sin pausas</span>
+                        </div>
+                        <label class="switch-toggle">
+                            <input type="checkbox" id="settingSkipVsSwitch">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- Switch 3: Usar Poké Balls Especiales -->
+                    <div class="setting-item" id="rowSettingSpecialBalls" style="display: flex; align-items: center; justify-content: space-between; background: rgba(30,41,59,0.7); padding: 4px 6px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-size: 8px; font-weight: 800; color: #f8fafc;">🎒 Poké Balls Especiales</span>
+                            <span style="font-size: 6.5px; color: #94a3b8;">Usar Super/Ultra en auto</span>
+                        </div>
+                        <label class="switch-toggle">
+                            <input type="checkbox" id="settingSpecialBallsSwitch">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- Switch 4: Sonidos / Cries -->
+                    <div class="setting-item" id="rowSettingAudio" style="display: flex; align-items: center; justify-content: space-between; background: rgba(30,41,59,0.7); padding: 4px 6px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-size: 8px; font-weight: 800; color: #f8fafc;">🔊 Sonido y Rugidos</span>
+                            <span style="font-size: 6.5px; color: #94a3b8;">Efectos de audio y rugidos</span>
+                        </div>
+                        <label class="switch-toggle">
+                            <input type="checkbox" id="settingAudioSwitch" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- Switch 5: Ocultar en Pantalla Completa / Juegos -->
+                    <div class="setting-item" id="rowSettingHideOnFullscreen" style="display: flex; align-items: center; justify-content: space-between; background: rgba(30,41,59,0.7); padding: 4px 6px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-size: 8px; font-weight: 800; color: #f8fafc;">🎮 Ocultar en Juegos / Pantalla Completa</span>
+                            <span style="font-size: 6.5px; color: #94a3b8;">Atajo: Ctrl+Shift+H (Sigue sumando EXP)</span>
+                        </div>
+                        <label class="switch-toggle">
+                            <input type="checkbox" id="settingHideOnFullscreenSwitch">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- Botón Reparar / Sincronizar Equipo -->
+                    <button class="action-btn" id="btnRepairTeam" style="width: 100%; height: 22px; font-size: 7.5px; margin-top: 2px; background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8;">
+                        🔧 Sincronizar / Reparar Equipo
+                    </button>
+                </div>
+
+                <button class="action-btn" id="btnCloseSettings" style="margin-top: 6px; width: 100%; height: 22px; font-size: 8px; background: rgba(148,163,184,0.25);">
+                    Listo
+                </button>
+            </div>
+        </div>
+
+        <!-- Top Status Bar -->
+        <div class="pet-header">
+            <div class="header-left">
+                <span class="level-badge" id="levelBadge">Lv. 1</span>
+                <span class="shiny-badge" id="shinyBadge">★ SHINY</span>
+            </div>
+            <div class="header-right">
+                <button class="btn-icon" id="btnAudioToggle" title="Sonido: Gritos Pokémon">🔊</button>
+                <button class="btn-icon" id="btnToggleEncounters" title="🐾 Encuentros Salvajes: ON/OFF">⚔️</button>
+                <button class="btn-icon" id="btnWalkerMode" title="🐾 Modo Paseo Libre">🐾</button>
+                <button class="btn-icon" id="btnSettings" title="⚙️ Ajustes del Juego">⚙️</button>
+                <button class="btn-icon" id="toggleDetailsBtn" title="Menú / Opciones">▼</button>
+                <button class="btn-icon btn-win-ctrl" id="btnWinMinimize" title="Minimizar">—</button>
+                <button class="btn-icon btn-win-ctrl" id="btnWinMaximize" title="Maximizar / Restaurar">🗖</button>
+                <button class="btn-icon btn-win-ctrl btn-win-close" id="btnWinClose" title="Ocultar a bandeja y modo paseo">✕</button>
+            </div>
+        </div>
+
+        <!-- 6-Member Team HUD (Poké Balls) -->
+        <div class="party-bar" id="partyBar" title="Haz clic en una Poké Ball para elegir al líder que recibe 100% EXP"></div>
+
+        <!-- Sprite Area -->
+        <div class="sprite-stage" id="spriteStage" title="¡Haz clic para interactuar!">
+            <div class="sprite-glow" id="spriteGlow"></div>
+            <div class="sleep-bubble" id="sleepBubble">💤</div>
+            <div class="walker-floating-bubble" id="walkerFloatingBubble" style="display: none;"></div>
+            <img id="pokemonSprite" class="pokemon-sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Compañero">
+        </div>
+
+
+
+        <!-- Species & Nature -->
+        <div class="pokemon-name" id="pokemonName">
+            <span id="leadPokemonNameText">Huevo Pokémon</span>
+            <span class="rank-badge rank-f" id="leadRankBadge" style="margin-left: 3px;">F</span>
+        </div>
+        <div class="nature-tag" id="natureTag">Incubando...</div>
+        <div class="evo-target-tag" id="evoTargetTag" style="font-size: 7.5px; color: #38bdf8; font-weight: 700; text-align: center; margin-bottom: 2px;">Evoluciona al Nv. --</div>
+
+        <!-- Dual Token Badges -->
+        <div class="token-badge">
+            <div class="token-item">
+                <span class="token-label">Tokens Hoy</span>
+                <span class="token-value" id="todayTokensDisplay">0</span>
+            </div>
+            <div class="token-divider"></div>
+            <div class="token-item">
+                <span class="token-label">Saldo Tienda</span>
+                <span class="token-value-shop" id="spendableTokensDisplay">0</span>
+            </div>
+        </div>
+
+        <!-- Progress to Hatch / Evolve / Graduate -->
+        <div class="progress-section">
+            <div class="progress-header">
+                <span id="progressLabel">Para Eclosionar</span>
+                <span id="progressPercent">0%</span>
+            </div>
+            <div class="progress-track">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <!-- Quick Action Buttons -->
+        <div class="quick-actions">
+            <button class="btn-quick" id="btnWalkShortcut">🐾 Pasear</button>
+            <button class="btn-quick" id="btnBattleShortcut">⚔️ Combate</button>
+            <button class="btn-quick" id="btnCryShortcut">🎵 Grito</button>
+        </div>
+
+        <!-- Expandable Multi-Tab Drawer -->
+        <div class="drawer-container" id="drawerContainer">
+            <!-- Navigation Tabs -->
+            <div class="tabs-nav">
+                <button class="tab-btn active" data-tab="tab-bag">Mochila</button>
+                <button class="tab-btn" data-tab="tab-shop">Tienda</button>
+                <button class="tab-btn" data-tab="tab-pc">Caja PC</button>
+                <button class="tab-btn" data-tab="tab-dex">Pokédex</button>
+                <button class="tab-btn" data-tab="tab-battle">⚔️ Combate</button>
+                <button class="tab-btn" data-tab="tab-stats">Equipo</button>
+            </div>
+
+            <!-- Tab 1: Mochila (Bag) -->
+            <div class="tab-pane active" id="tab-bag">
+                <div class="item-card">
+                    <div class="item-info">
+                        <span class="item-title">🍬 Caramelo Raro</span>
+                        <span class="item-subtitle" id="bagCandiesCount">0 disponibles (+1 Nivel)</span>
+                    </div>
+                    <button class="action-btn" id="btnUseCandy">Usar</button>
+                </div>
+                <div class="item-card">
+                    <div class="item-info">
+                        <span class="item-title">🍃 Menta de Naturaleza</span>
+                        <span class="item-subtitle" id="bagMintsCount">0 disponibles (Cambia rasgo)</span>
+                    </div>
+                    <button class="action-btn" id="btnUseMint">Usar</button>
+                </div>
+                <div class="item-card">
+                    <div class="item-info">
+                        <span class="item-title">🔴 Poké Balls Básicas</span>
+                        <span class="item-subtitle" id="bagPokeballsCount">0 disponibles (Captura base)</span>
+                    </div>
+                    <span style="font-size: 8.5px; color: #10b981;">Combate</span>
+                </div>
+                <div class="item-card">
+                    <div class="item-info">
+                        <span class="item-title">🔵 Super Balls</span>
+                        <span class="item-subtitle" id="bagGreatballsCount">0 disponibles (+45% captura)</span>
+                    </div>
+                    <span style="font-size: 8.5px; color: #38bdf8;">Combate</span>
+                </div>
+                <div class="item-card">
+                    <div class="item-info">
+                        <span class="item-title">🟡 Ultra Balls</span>
+                        <span class="item-subtitle" id="bagUltraballsCount">0 disponibles (+115% captura)</span>
+                    </div>
+                    <span style="font-size: 8.5px; color: #fbbf24;">Combate</span>
+                </div>
+                <div class="item-card">
+                    <div class="item-info">
+                        <span class="item-title">🟣 Master Balls</span>
+                        <span class="item-subtitle" id="bagMasterballsCount">0 disponibles (100% infalible)</span>
+                    </div>
+                    <span style="font-size: 8.5px; color: #c084fc;">Mítica</span>
+                </div>
+                <div class="item-card">
+                    <div class="item-info">
+                        <span class="item-title">🧪 Pociones</span>
+                        <span class="item-subtitle" id="bagPotionsCount">0 disponibles (+30 PS)</span>
+                    </div>
+                    <span style="font-size: 8.5px; color: #10b981;">Combate</span>
+                </div>
+                <div class="item-card">
+                    <div class="item-info">
+                        <span class="item-title">✨ Amuleto Iris</span>
+                        <span class="item-subtitle" id="bagCharmStatus">Probabilidad 1/64</span>
+                    </div>
+                    <span style="font-size: 8.5px; color: #a5b4fc;" id="bagCharmLabel">Inactivo</span>
+                </div>
+
+                <!-- Bolsa de Huevos en Reserva -->
+                <div class="item-card" style="flex-direction: column; align-items: stretch; gap: 4px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span class="item-title">🧺 Bolsa de Huevos</span>
+                        <span style="font-size: 8px; color: #38bdf8;" id="eggBagCountDisplay">0 en reserva</span>
+                    </div>
+                    <div id="eggBagList" style="display: flex; flex-direction: column; gap: 3px; max-height: 70px; overflow-y: auto;">
+                        <div style="font-size: 8px; color: #64748b; text-align: center; padding: 4px;">Sin huevos en reserva</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Tienda (Shop) -->
+            <div class="tab-pane" id="tab-shop">
+                <div class="item-card">
+                    <div class="item-info">
+                        <span class="item-title">🍬 Caramelo Raro</span>
+                        <span class="item-subtitle">Precio: 500M tokens</span>
+                    </div>
+                    <button class="action-btn" id="btnBuyCandy">Comprar</button>
+                </div>
+                <div class="item-card">
+                    <div class="item-info">
+                        <span class="item-title">🍃 Menta Naturaleza</span>
+                        <span class="item-subtitle">Precio: 100M tokens</span>
+                    </div>
+                    <button class="action-btn" id="btnBuyMint">Comprar</button>
+                </div>
+                <div class="item-card">
+                    <div class="item-info">
+                        <span class="item-title">🔴 Poké Balls (x5)</span>
+                        <span class="item-subtitle">Precio: 200M tokens</span>
+                    </div>
+                    <button class="action-btn" id="btnBuyPokeballs">Comprar</button>
+                </div>
+                <div class="item-card">
+                    <div class="item-info">
+                        <span class="item-title">🔵 Super Balls (x3)</span>
+                        <span class="item-subtitle">Precio: 400M tokens (+45%)</span>
+                    </div>
+                    <button class="action-btn" id="btnBuyGreatballs">Comprar</button>
+                </div>
+                <div class="item-card">
+                    <div class="item-info">
+                        <span class="item-title">🟡 Ultra Balls (x2)</span>
+                        <span class="item-subtitle">Precio: 800M tokens (+115%)</span>
+                    </div>
+                    <button class="action-btn" id="btnBuyUltraballs">Comprar</button>
+                </div>
+                <div class="item-card">
+                    <div class="item-info">
+                        <span class="item-title">🟣 Master Ball (x1)</span>
+                        <span class="item-subtitle">Precio: 5.0B tokens (100%)</span>
+                    </div>
+                    <button class="action-btn" id="btnBuyMasterball">Comprar</button>
+                </div>
+                <div class="item-card">
+                    <div class="item-info">
+                        <span class="item-title">🧪 Pociones (x3)</span>
+                        <span class="item-subtitle">Precio: 150M tokens</span>
+                    </div>
+                    <button class="action-btn" id="btnBuyPotions">Comprar</button>
+                </div>
+                <div class="item-card">
+                    <div class="item-info">
+                        <span class="item-title">✨ Amuleto Iris (+33%)</span>
+                        <span class="item-subtitle">Precio: 3.0B tokens</span>
+                    </div>
+                    <button class="action-btn" id="btnBuyCharm">Comprar</button>
+                </div>
+                <div class="item-card">
+                    <div class="item-info">
+                        <span class="item-title">🥚 Huevo Común</span>
+                        <span class="item-subtitle" id="shopEggCommonDesc">Precio: 1.0B tokens</span>
+                    </div>
+                    <button class="action-btn" id="btnBuyEggCommon">Comprar</button>
+                </div>
+                <div class="item-card">
+                    <div class="item-info">
+                        <span class="item-title">🥚 Huevo Poco Común</span>
+                        <span class="item-subtitle" id="shopEggUncommonDesc">Precio: 2.5B tokens</span>
+                    </div>
+                    <button class="action-btn" id="btnBuyEggUncommon">Comprar</button>
+                </div>
+                <div class="item-card">
+                    <div class="item-info">
+                        <span class="item-title">🥚 Huevo Raro (Dragón)</span>
+                        <span class="item-subtitle" id="shopEggRareDesc">Precio: 4.0B tokens</span>
+                    </div>
+                    <button class="action-btn" id="btnBuyEggRare">Comprar</button>
+                </div>
+            </div>
+
+            <!-- Tab 3: Caja PC (Almacén Independiente Estilo GBA) -->
+            <div class="tab-pane" id="tab-pc">
+                <div class="gba-pc-wrapper">
+                    <!-- Columna Izquierda: Ficha de Inspección Retro -->
+                    <div class="gba-pc-inspector" id="gbaPcInspector">
+                        <div class="gba-insp-header">
+                            <span class="gba-insp-name" id="gbaInspName">Selecciona</span>
+                        </div>
+                        <div class="gba-insp-stage">
+                            <img id="gbaInspSprite" class="gba-insp-sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Inspeccionar">
+                        </div>
+                        <div class="gba-insp-level-row">
+                            <span class="gba-insp-level" id="gbaInspLevel">Nv. --</span>
+                            <div class="gba-insp-types" id="gbaInspTypes"></div>
+                        </div>
+                        <div class="gba-insp-details" id="gbaInspDetails">
+                            <div class="gba-insp-row">
+                                <span style="color:#94a3b8;">Naturaleza:</span>
+                                <span id="gbaInspNature" style="font-weight:700;">--</span>
+                            </div>
+                            <div class="gba-insp-row">
+                                <span style="color:#94a3b8;">PS:</span>
+                                <span id="gbaInspHp" style="font-weight:700;">--/--</span>
+                            </div>
+                            <div class="gba-insp-row">
+                                <span style="color:#94a3b8;">Ataque:</span>
+                                <span id="gbaInspMove1" style="font-weight:700; color:#38bdf8;">--</span>
+                            </div>
+                        </div>
+                        <div class="gba-insp-actions">
+                            <button class="btn-gba-action primary" id="btnGbaMoveToTeam">📥 Al Equipo</button>
+                            <button class="btn-gba-action warning" id="btnGbaArchiveToDex" title="Archiva ejemplar nivel 100 de forma permanente a la Pokédex otorgándole la Estrella de Maestría">🏛️ Archivar a Dex</button>
+                            <button class="btn-gba-action secondary" id="btnGbaCleanDuplicates" title="Limpia clones repetidos y reembolsa tokens">🧹 Limpiar Duplicados</button>
+                        </div>
+                    </div>
+
+                    <!-- Columna Derecha: Cuadrícula GBA (6x5 = 30 Casillas) -->
+                    <div class="gba-pc-box-container">
+                        <div class="gba-filters-bar" id="gbaFiltersBar">
+                            <button class="gba-filter-btn active" data-filter="all">🌐 Todas</button>
+                            <button class="gba-filter-btn" data-filter="kanto">Kanto</button>
+                            <button class="gba-filter-btn" data-filter="johto">Johto</button>
+                            <button class="gba-filter-btn" data-filter="hoenn">Hoenn</button>
+                            <button class="gba-filter-btn" data-filter="sinnoh">Sinnoh</button>
+                            <button class="gba-filter-btn" data-filter="unova">Teselia</button>
+                            <button class="gba-filter-btn" data-filter="kalos">Kalos</button>
+                            <button class="gba-filter-btn" data-filter="alola">Alola</button>
+                            <button class="gba-filter-btn" data-filter="galar">Galar</button>
+                            <button class="gba-filter-btn" data-filter="paldea">Paldea</button>
+                            <button class="gba-filter-btn shiny-tab-btn" data-filter="shiny">✨ Caja Shiny</button>
+                        </div>
+                        <div class="gba-box-header">
+                            <button class="gba-box-nav-btn" id="btnGbaBoxPrev">◀</button>
+                            <span id="gbaBoxTitle">Caja 1</span>
+                            <button class="gba-box-nav-btn" id="btnGbaBoxNext">▶</button>
+                        </div>
+                        <div class="gba-box-grid" id="gbaBoxGrid">
+                            <!-- 30 Casillas dinámicas generadas por renderer.js -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 4: Pokédex Nacional por Regiones (Estilo Fotografía) -->
+            <div class="tab-pane" id="tab-dex">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; flex-shrink:0;">
+                    <span style="font-size: clamp(8.5px, 0.75vw + 0.25vh, 12px); font-weight: 800; color: #38bdf8;">📖 Pokédex Nacional</span>
+                    <span id="dexTotalCount" style="font-size: clamp(7.5px, 0.65vw + 0.2vh, 11px); color:#94a3b8; background:rgba(30,41,59,0.8); padding:2px 6px; border-radius:10px;">0 / 1025 Registrados</span>
+                </div>
+                <!-- Regional Nav Pills -->
+                <div class="region-nav" id="dexRegionNav" style="flex-shrink:0;">
+                    <button class="region-pill active" data-region="kanto">Kanto (1-151)</button>
+                    <button class="region-pill" data-region="johto">Johto (152-251)</button>
+                    <button class="region-pill" data-region="hoenn">Hoenn (252-386)</button>
+                    <button class="region-pill" data-region="sinnoh">Sinnoh (387-493)</button>
+                    <button class="region-pill" data-region="unova">Teselia (494-649)</button>
+                    <button class="region-pill" data-region="kalos">Kalos (650-721)</button>
+                    <button class="region-pill" data-region="alola">Alola (722-809)</button>
+                    <button class="region-pill" data-region="galar">Galar (810-898)</button>
+                    <button class="region-pill" data-region="paldea">Paldea (899-1025)</button>
+                </div>
+                <div id="dexContainer" class="dex-grid">
+                    <div class="dex-empty">Cargando Pokédex...</div>
+                </div>
+            </div>
+
+            <!-- Tab 5: ⚔️ Combate por Turnos (Embedded / Lobby) -->
+            <div class="tab-pane" id="tab-battle">
+                <!-- Inactive / Lobby View -->
+                <div id="battleInactiveView" style="display:flex; flex-direction:column; gap:6px; text-align:center; padding:4px 0;">
+                    <div style="font-size: clamp(10px, 0.9vw + 0.3vh, 14px); font-weight:800; color:#f8fafc;">⚔️ Estadio de Combate</div>
+                    <div style="font-size: clamp(7.5px, 0.65vw + 0.2vh, 11px); color:#94a3b8;">Los combates ocurren en la arena flotante o incrustados aquí si minimizas la ventana.</div>
+                    
+                    <!-- Pre-battle Fighter Preview Box -->
+                    <div style="background:rgba(15,23,42,0.8); border:1px solid rgba(99,102,241,0.3); border-radius:8px; padding:6px; display:flex; flex-direction:column; gap:4px; text-align:left;">
+                        <div style="display:flex; align-items:center; justify-content:space-between;">
+                            <div style="display:flex; align-items:center; gap:5px;">
+                                <img id="lobbyFighterSprite" src="" style="width:28px; height:28px; image-rendering:pixelated; object-fit:contain;">
+                                <div>
+                                    <div style="font-size:9px; font-weight:800; color:#f8fafc;" id="lobbyFighterName">Compañero</div>
+                                    <div style="font-size:7px; color:#38bdf8;" id="lobbyFighterLevel">Lv. 1</div>
+                                </div>
+                            </div>
+                            <span style="font-size:7px; background:rgba(34,197,94,0.2); color:#4ade80; padding:1px 5px; border-radius:4px; font-weight:700;">Líder de Batalla</span>
+                        </div>
+                        <div style="font-size:7px; color:#94a3b8; margin-top:2px;">Movimientos activos:</div>
+                        <div id="lobbyFighterMoves" style="display:grid; grid-template-columns:1fr 1fr; gap:2px;"></div>
+                    </div>
+
+                    <div id="cardBattleStatusAlert" style="display:none; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); border-radius:6px; padding:5px; font-size:8px; color:#fca5a5;">
+                        ⚔️ ¡Combate en curso! Puedes abrir la ventana o luchar aquí abajo.
+                    </div>
+
+                    <button class="action-btn" id="btnLaunchBattleWindow" style="padding:7px; font-size:9px; margin-top:3px; background:linear-gradient(135deg, #6366f1, #8b5cf6); font-weight:800; box-shadow:0 0 10px rgba(99,102,241,0.5);">⚔️ Abrir Ventana de Combate</button>
+                    <button class="action-btn" id="btnStartWildBattle" style="padding:7px; font-size:9px; margin-top:2px; background:linear-gradient(135deg, #ef4444, #f59e0b); font-weight:800; box-shadow:0 0 10px rgba(239,68,68,0.4);">⚔️ ¡Pelear con Rival Salvaje!</button>
+                </div>
+
+                <!-- Active Embedded Battle View (When fighting or minimized) -->
+                <div id="battleActiveView" style="display:none; flex-direction:column; gap:4px; width:100%;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:8.5px; font-weight:800; color:#ef4444;" id="embeddedTurnIndicator">⚔️ Combate en Vivo</span>
+                        <button class="action-btn" id="btnPopoutBattleWindow" style="padding:1px 6px; font-size:7px; background:rgba(99,102,241,0.4);">↗ Ventana Flotante</button>
+                    </div>
+
+                    <!-- Arena Visual Stage -->
+                    <div class="embedded-arena-stage">
+                        <!-- Rival Entity (Top Right) -->
+                        <div class="arena-entity wild-entity" style="justify-content:flex-end;">
+                            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:1px;">
+                                <div style="display:flex; gap:4px; align-items:center;">
+                                    <span id="embRivalName" style="font-size:8px; font-weight:800; color:#f8fafc;">Rival</span>
+                                    <span id="embRivalLevel" style="font-size:7px; color:#fbbf24; font-weight:700;">Lv. 1</span>
+                                </div>
+                                <div style="width:75px; height:4px; background:rgba(0,0,0,0.5); border-radius:3px; overflow:hidden;">
+                                    <div id="embRivalHpBar" style="width:100%; height:100%; background:#10b981; transition:width 0.3s;"></div>
+                                </div>
+                                <span id="embRivalHpText" style="font-size:6px; color:#94a3b8;">100%</span>
+                            </div>
+                            <img id="embRivalSprite" src="" style="width:36px; height:36px; object-fit:contain; image-rendering:pixelated;">
+                        </div>
+
+                        <!-- Player Entity (Bottom Left) -->
+                        <div class="arena-entity player-entity" style="justify-content:flex-start;">
+                            <img id="embPlayerSprite" src="" style="width:36px; height:36px; object-fit:contain; image-rendering:pixelated; transform:scaleX(-1);">
+                            <div style="display:flex; flex-direction:column; align-items:flex-start; gap:1px;">
+                                <div style="display:flex; gap:4px; align-items:center;">
+                                    <span id="embPlayerName" style="font-size:8px; font-weight:800; color:#f8fafc;">Compañero</span>
+                                    <span id="embPlayerLevel" style="font-size:7px; color:#38bdf8; font-weight:700;">Lv. 1</span>
+                                </div>
+                                <div style="width:75px; height:4px; background:rgba(0,0,0,0.5); border-radius:3px; overflow:hidden;">
+                                    <div id="embPlayerHpBar" style="width:100%; height:100%; background:#10b981; transition:width 0.3s;"></div>
+                                </div>
+                                <span id="embPlayerHpText" style="font-size:6px; color:#94a3b8;">100%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Battle Log Status Ticker -->
+                    <div id="embBattleLogTicker" class="battle-log-ticker" style="font-size:7.5px; padding:3px;">¡Comienza el combate!</div>
+
+                    <!-- Controls: 4 Moves + Catch + Run -->
+                    <div id="embMovesGrid" style="display:grid; grid-template-columns:1fr 1fr; gap:3px;">
+                        <!-- Dynamically filled with move buttons -->
+                    </div>
+                    <div style="display:flex; gap:3px; margin-top:2px;">
+                        <button class="action-btn" id="btnEmbThrowBall" style="flex:1; background:linear-gradient(135deg, #f59e0b, #d97706); font-size:7.5px; padding:3px;">🔴 Lanzar Ball</button>
+                        <button class="action-btn" id="btnEmbRun" style="flex:1; background:rgba(100,116,139,0.5); font-size:7.5px; padding:3px;">🏃 Huir</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 5: Equipo, Movimientos & Ajustes -->
+            <div class="tab-pane" id="tab-stats">
+                <!-- Líder Info & Deposit to PC -->
+                <div class="item-card">
+                    <div class="item-info">
+                        <span class="item-title" id="infoLeadName">Ranura 1</span>
+                        <span class="item-subtitle" id="infoStageLabel">Forma 1/3</span>
+                    </div>
+                    <button class="action-btn" id="btnDepositLeadToPC" style="background:rgba(56,189,248,0.3); border-color:rgba(56,189,248,0.5);">📥 Guardar en PC</button>
+                </div>
+
+                <!-- 4 Active Moves -->
+                <div style="background:rgba(30,41,59,0.5); padding:4px; border-radius:6px;">
+                    <div style="font-size:8px; font-weight:700; color:#fbbf24; margin-bottom:2px;">🥊 4 Movimientos Activos:</div>
+                    <div class="moves-grid" id="statsMovesGrid"></div>
+                </div>
+
+                <!-- Unlocked Moves Repertoire (No HMs restriction) -->
+                <div style="background:rgba(30,41,59,0.5); padding:4px; border-radius:6px;">
+                    <div style="font-size:8px; font-weight:700; color:#38bdf8; margin-bottom:2px;">📚 Movimientos Aprendidos (Sin MOs):</div>
+                    <div id="learnedMovesList" style="display:flex; flex-direction:column; gap:2px; max-height:65px; overflow-y:auto;"></div>
+                </div>
+
+                <!-- Progression Info -->
+                <div style="font-size: 8.5px; color: #94a3b8; display: flex; flex-direction: column; gap: 2px;">
+                    <div><strong>Línea Evolutiva:</strong> <span id="infoLineName">Incubadora</span></div>
+                    <div><strong>Repartir EXP:</strong> <span style="color:#10b981;">Activo (100% Líder/Huevos | 50% Equipo)</span></div>
+                    <div><strong>Tokens Restantes:</strong> <span id="infoRemaining">500K</span></div>
+                    <div><strong>Historial Total:</strong> <span id="infoTotalTokens">0</span></div>
+                </div>
+
+                <!-- Difficulty Selector -->
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:3px 5px; background:rgba(30,41,59,0.5); border-radius:6px; font-size:8.5px;">
+                    <span>Dificultad:</span>
+                    <div style="display:flex; gap:3px;">
+                        <button class="action-btn" id="btnDiffFast" style="padding:2px 5px; font-size:7.5px;">🚀 Rápido (500K)</button>
+                        <button class="action-btn" id="btnDiffStandard" style="padding:2px 5px; font-size:7.5px; opacity:0.6;">🐢 Clásico (5M)</button>
+                    </div>
+                </div>
+
+                <!-- Tools Row -->
+                <div class="tools-row" style="grid-template-columns: repeat(3, 1fr);">
+                    <button class="tool-btn" id="btnResetEgg" title="Comenzar con un huevo nuevo">🥚 Nuevo Huevo</button>
+                    <button class="tool-btn" id="btnForceHatch" title="Eclosionar inmediatamente">⚡ Eclosionar</button>
+                    <button class="tool-btn" id="btnNextLine" title="Rotar al siguiente Pokémon del equipo">🔄 Cambiar Líder</button>
+                    <button class="tool-btn" id="btnToggleShiny" title="Alternar Shiny">✨ Shiny</button>
+                    <button class="tool-btn" id="btnSpawnWild" title="Generar un rival salvaje inmediatamente" style="grid-column: span 2; color: #f59e0b; border-color: rgba(245, 158, 11, 0.3);">⚔️ Generar Rival Salvaje</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>

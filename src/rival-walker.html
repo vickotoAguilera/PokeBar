@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Rival Walker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        body {
+            width: 90px;
+            height: 90px;
+            background: transparent;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-app-region: no-drag;
+        }
+
+        .rival-container {
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            animation: rivalWalkBounce 0.4s infinite alternate ease-in-out;
+        }
+
+        @keyframes rivalWalkBounce {
+            0% { transform: translateY(0px); }
+            100% { transform: translateY(-4px); }
+        }
+
+        .rival-sprite {
+            max-width: 76px;
+            max-height: 76px;
+            object-fit: contain;
+            image-rendering: pixelated;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.45));
+            transition: transform 0.15s ease, filter 0.2s ease, opacity 0.3s ease;
+        }
+
+        .flip-left {
+            transform: scaleX(1);
+        }
+
+        .flip-right {
+            transform: scaleX(-1);
+        }
+
+        /* Catch Animation (shrinking into red glow) */
+        .capturing {
+            animation: catchShrink 0.75s forwards cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        @keyframes catchShrink {
+            0% { transform: scale(1); filter: drop-shadow(0 0 8px #ef4444); }
+            50% { transform: scale(0.6) rotate(15deg); filter: drop-shadow(0 0 16px #ef4444) brightness(1.5); }
+            100% { transform: scale(0) rotate(45deg); opacity: 0; }
+        }
+
+        /* Flee Animation */
+        .fleeing {
+            animation: fleeRun 0.6s forwards ease-in;
+        }
+
+        @keyframes fleeRun {
+            0% { transform: translateX(0); opacity: 1; }
+            100% { transform: translateX(120px); opacity: 0; }
+        }
+
+        .rival-badge {
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(239, 68, 68, 0.6);
+            color: #ef4444;
+            font-size: 7px;
+            font-weight: 900;
+            padding: 1px 4px;
+            border-radius: 4px;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="rival-container" id="rivalContainer">
+        <div class="rival-badge" id="rivalBadge">RIVAL</div>
+        <img id="rivalSprite" class="rival-sprite flip-left" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Rival">
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const speciesId = params.get('speciesId') || 4;
+        const level = params.get('level') || 5;
+        const isShiny = params.get('shiny') === 'true';
+        const dir = parseInt(params.get('dir') || '-1', 10);
+        const name = params.get('name') || 'Rival';
+
+        const spriteEl = document.getElementById('rivalSprite');
+        const badgeEl = document.getElementById('rivalBadge');
+        const containerEl = document.getElementById('rivalContainer');
+
+        badgeEl.innerText = `Lv. ${level}`;
+
+        const spriteUrl = isShiny
+            ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/shiny/${speciesId}.gif`
+            : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${speciesId}.gif`;
+
+        const fallbackUrl = isShiny
+            ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${speciesId}.png`
+            : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${speciesId}.png`;
+
+        spriteEl.onerror = () => {
+            spriteEl.onerror = null;
+            spriteEl.src = fallbackUrl;
+        };
+        spriteEl.src = spriteUrl;
+
+        // Apply flip based on movement direction
+        if (dir === 1) {
+            spriteEl.className = 'rival-sprite flip-right';
+        } else {
+            spriteEl.className = 'rival-sprite flip-left';
+        }
+
+        // Listen for actions if sent via window messages or ipc
+        window.setAnimation = (anim) => {
+            if (anim === 'capture') {
+                containerEl.classList.add('capturing');
+            } else if (anim === 'flee') {
+                containerEl.classList.add('fleeing');
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estadio de Combate - PokeTokenBar</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+        }
+
+        body {
+            background: transparent;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+        }
+
+        .battle-window-container {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 50% 15%, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.99));
+            border: 1.5px solid rgba(99, 102, 241, 0.55);
+            border-radius: 14px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.85), 0 0 20px rgba(99, 102, 241, 0.25);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Draggable Title Header */
+        .window-header {
+            -webkit-app-region: drag;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 10px;
+            background: rgba(15, 23, 42, 0.85);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .header-title-box {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .header-title {
+            font-size: 10px;
+            font-weight: 800;
+            color: #f8fafc;
+            letter-spacing: 0.5px;
+        }
+
+        .header-controls {
+            -webkit-app-region: no-drag;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .ctrl-btn {
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #cbd5e1;
+            font-size: 8px;
+            font-weight: 800;
+            padding: 2.5px 7px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .ctrl-btn:hover {
+            background: rgba(51, 65, 85, 0.95);
+            border-color: rgba(99, 102, 241, 0.6);
+            transform: scale(1.05);
+        }
+
+        .ctrl-btn.active {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-color: #818cf8;
+            color: #fff;
+            box-shadow: 0 0 8px rgba(99, 102, 241, 0.6);
+        }
+
+        .close-btn {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: #ef4444;
+            font-size: 11px;
+            font-weight: 900;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .close-btn:hover {
+            background: #ef4444;
+            color: #fff;
+        }
+
+        /* 2-Corner Sketch Layout */
+        .battle-body {
+            -webkit-app-region: no-drag;
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 8px;
+            padding: 10px 12px 6px 12px;
+            position: relative;
+        }
+
+        /* Top-Right: Wild Rival Battler */
+        .battler-rival {
+            grid-column: 2;
+            grid-row: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            text-align: right;
+            justify-content: center;
+            gap: 2px;
+        }
+
+        /* Bottom-Left: Player Battler */
+        .battler-player {
+            grid-column: 1;
+            grid-row: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            text-align: left;
+            justify-content: center;
+            gap: 2px;
+        }
+
+        .hp-card {
+            width: clamp(110px, 28vw, 220px);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .battler-rival .hp-card {
+            align-items: flex-end;
+        }
+
+        .hp-track {
+            width: 100%;
+            height: clamp(6px, 1.4vh, 12px);
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .hp-fill {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #10b981, #22c55e);
+            border-radius: 4px;
+            transition: width 0.35s ease, background 0.35s ease;
+        }
+
+        .hp-text {
+            font-size: clamp(7.5px, 1.4vmin, 13px);
+            font-weight: 800;
+            color: #94a3b8;
+        }
+
+        .avatar-pod {
+            width: clamp(58px, 13vmin, 120px);
+            height: clamp(58px, 13vmin, 120px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle, rgba(51, 65, 85, 0.6), rgba(15, 23, 42, 0.95));
+            border: 2px solid rgba(99, 102, 241, 0.5);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+            margin: 2px 0;
+            position: relative;
+        }
+
+        .avatar-pod.rival-pod {
+            border-color: rgba(239, 68, 68, 0.7);
+            box-shadow: 0 0 16px rgba(239, 68, 68, 0.35);
+        }
+
+        .avatar-pod.player-pod {
+            border-color: rgba(56, 189, 248, 0.7);
+            box-shadow: 0 0 16px rgba(56, 189, 248, 0.35);
+        }
+
+        .avatar-pod img {
+            width: 85%;
+            height: 85%;
+            max-width: 110px;
+            max-height: 110px;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+
+        .battler-rival img {
+            animation: rival-bob 1s infinite alternate ease-in-out;
+        }
+
+        .battler-player img {
+            transform: scaleX(-1);
+            animation: player-bob 1s infinite alternate ease-in-out;
+        }
+
+        @keyframes rival-bob {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-4px); }
+        }
+
+        @keyframes player-bob {
+            0% { transform: scaleX(-1) translateY(0); }
+            100% { transform: scaleX(-1) translateY(-4px); }
+        }
+
+        .name-label {
+            font-size: clamp(9.5px, 2vmin, 18px);
+            font-weight: 800;
+            color: #f8fafc;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+        }
+
+        .level-label {
+            font-size: clamp(8px, 1.7vmin, 15px);
+            font-weight: 700;
+            color: #fbbf24;
+        }
+
+        /* Top-Left Inactive Overlay or Waiting Status */
+        .stadium-status-box {
+            grid-column: 1;
+            grid-row: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .stadium-status-badge {
+            font-size: 8px;
+            font-weight: 800;
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.15);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 6px;
+            padding: 3px 6px;
+            width: fit-content;
+        }
+
+        /* Bottom-Right Action Box (2x2 Attack Grid or Catch Console) */
+        .action-box {
+            grid-column: 2;
+            grid-row: 2;
+            background: rgba(15, 23, 42, 0.92);
+            border: 1.5px solid rgba(99, 102, 241, 0.45);
+            border-radius: 10px;
+            padding: clamp(4px, 1vmin, 8px);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: clamp(95px, 28vh, 180px);
+        }
+
+        .moves-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: clamp(3px, 1vmin, 8px);
+            height: clamp(64px, 20vh, 130px);
+        }
+
+        .move-btn {
+            background: rgba(30, 41, 59, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 6px;
+            padding: clamp(2.5px, 0.6vh, 6px) clamp(5px, 1vw, 10px);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.15s ease;
+        }
+
+        .move-btn:hover:not(:disabled) {
+            background: rgba(51, 65, 85, 0.98);
+            border-color: #818cf8;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 10px rgba(99, 102, 241, 0.5);
+        }
+
+        .move-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        .move-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .move-name {
+            font-size: clamp(7.5px, 1.6vmin, 14px);
+            font-weight: 800;
+            color: #f8fafc;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: clamp(60px, 12vw, 150px);
+        }
+
+        .move-type-tag {
+            font-size: clamp(6px, 1.3vmin, 11px);
+            padding: 0.5px 3.5px;
+            border-radius: 3px;
+            font-weight: 800;
+            color: #fff;
+        }
+
+        .move-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .move-pp {
+            font-size: clamp(6px, 1.3vmin, 11px);
+            color: #94a3b8;
+            font-weight: 700;
+        }
+
+        .move-pwr {
+            font-size: clamp(6px, 1.3vmin, 11px);
+            color: #fbbf24;
+            font-weight: 800;
+        }
+
+        .quick-tools {
+            display: flex;
+            gap: 3px;
+            margin-top: 2px;
+        }
+
+        .tool-btn {
+            flex: 1;
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #cbd5e1;
+            font-size: clamp(7px, 1.5vmin, 13px);
+            font-weight: 700;
+            padding: clamp(2.5px, 0.8vh, 6px) 0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.12s;
+        }
+
+        .tool-btn:hover {
+            background: rgba(51, 65, 85, 0.95);
+            color: #fff;
+        }
+
+        .tool-btn.btn-run:hover {
+            background: rgba(239, 68, 68, 0.6);
+            border-color: #ef4444;
+        }
+
+        /* Catch Console */
+        .catch-console {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            height: 100%;
+            justify-content: space-between;
+        }
+
+        .catch-title {
+            font-size: 7.5px;
+            font-weight: 800;
+            color: #fbbf24;
+            text-align: center;
+        }
+
+        .balls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3px;
+        }
+
+        .ball-btn {
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 5px;
+            padding: 3px 5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .ball-btn:hover:not(:disabled) {
+            transform: scale(1.04);
+            border-color: #fbbf24;
+            box-shadow: 0 0 10px rgba(251, 191, 36, 0.4);
+        }
+
+        .ball-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        .ball-info {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .ball-title {
+            font-size: 7px;
+            font-weight: 800;
+            color: #f8fafc;
+        }
+
+        .ball-stock {
+            font-size: 7px;
+            font-weight: 700;
+            color: #38bdf8;
+        }
+
+        .ball-pct-pill {
+            font-size: 6.5px;
+            background: rgba(34, 197, 94, 0.3);
+            color: #4ade80;
+            padding: 0.5px 3.5px;
+            border-radius: 3px;
+            font-weight: 900;
+            border: 0.5px solid rgba(74, 222, 128, 0.4);
+        }
+
+        .btn-finish-catch {
+            width: 100%;
+            background: rgba(51, 65, 85, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #cbd5e1;
+            font-size: 7px;
+            font-weight: 800;
+            padding: 2.5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-finish-catch:hover {
+            background: rgba(71, 85, 105, 0.95);
+            color: #fff;
+        }
+
+        /* Bottom Status Ticker */
+        .bottom-ticker {
+            -webkit-app-region: no-drag;
+            background: rgba(15, 23, 42, 0.9);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 3px 10px;
+            font-size: 7.5px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Switch Modal Overlay */
+        .switch-overlay {
+            position: absolute;
+            top: 28px;
+            left: 8px;
+            right: 8px;
+            bottom: 22px;
+            background: rgba(15, 23, 42, 0.97);
+            border: 1px solid rgba(99, 102, 241, 0.6);
+            border-radius: 10px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            z-index: 100;
+        }
+
+        .switch-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 9px;
+            font-weight: 800;
+            color: #38bdf8;
+        }
+
+        .switch-list {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .switch-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(30, 41, 59, 0.7);
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.12s;
+        }
+
+        .switch-item:hover {
+            background: rgba(51, 65, 85, 0.9);
+            border-color: #38bdf8;
+        }
+
+        /* Pokeball Flying Projectile & Shake Animations */
+        .pokeball-projectile {
+            position: absolute;
+            width: clamp(24px, 6vmin, 34px);
+            height: clamp(24px, 6vmin, 34px);
+            pointer-events: none;
+            z-index: 150;
+            filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.85));
+        }
+
+        @keyframes ball-wobble {
+            0% { transform: rotate(0deg); }
+            20% { transform: rotate(-32deg); }
+            40% { transform: rotate(32deg); }
+            60% { transform: rotate(-18deg); }
+            80% { transform: rotate(18deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        .ball-shaking {
+            animation: ball-wobble 0.75s ease-in-out infinite !important;
+            filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.7));
+        }
+
+        .rival-flash-captured {
+            filter: brightness(3) drop-shadow(0 0 20px rgba(251, 191, 36, 0.95)) !important;
+            transform: scale(0.15) !important;
+            opacity: 0.2;
+            transition: all 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .rival-burst-out {
+            animation: rival-pop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes rival-pop {
+            0% { transform: scale(0.2); opacity: 0; filter: brightness(3); }
+            70% { transform: scale(1.15); opacity: 1; filter: brightness(1.4); }
+            100% { transform: scale(1); opacity: 1; filter: none; }
+        }
+
+        /* Battle Result Celebration Overlay */
+        .battle-result-overlay {
+            position: absolute;
+            top: 28px;
+            left: 8px;
+            right: 8px;
+            bottom: 22px;
+            background: radial-gradient(circle at 50% 30%, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.99));
+            border: 2px solid rgba(251, 191, 36, 0.7);
+            box-shadow: 0 0 25px rgba(251, 191, 36, 0.35), inset 0 0 20px rgba(0, 0, 0, 0.8);
+            border-radius: 12px;
+            padding: clamp(8px, 2vmin, 16px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: clamp(4px, 1.2vmin, 10px);
+            z-index: 110;
+            animation: modal-pop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            text-align: center;
+        }
+
+        @keyframes modal-pop {
+            0% { transform: scale(0.85); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .result-badge-title {
+            font-size: clamp(10px, 2.4vmin, 18px);
+            font-weight: 900;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .result-badge-title.caught {
+            color: #fbbf24;
+            text-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
+        }
+
+        .result-badge-title.victory {
+            color: #38bdf8;
+            text-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
+        }
+
+        .result-badge-title.defeat {
+            color: #ef4444;
+            text-shadow: 0 0 12px rgba(239, 68, 68, 0.6);
+        }
+
+        .result-avatar-ring {
+            width: clamp(54px, 13vmin, 96px);
+            height: clamp(54px, 13vmin, 96px);
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(251, 191, 36, 0.25), rgba(15, 23, 42, 0.8));
+            border: 2px solid rgba(251, 191, 36, 0.6);
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: avatar-float 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes avatar-float {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-5px); }
+        }
+
+        .result-avatar-ring img {
+            width: 80%;
+            height: 80%;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+
+        .result-info-text {
+            font-size: clamp(7.5px, 1.5vmin, 13px);
+            color: #cbd5e1;
+            font-weight: 700;
+        }
+
+        .result-exp-pill {
+            font-size: clamp(7.5px, 1.4vmin, 12px);
+            font-weight: 800;
+            color: #4ade80;
+            background: rgba(34, 197, 94, 0.18);
+            border: 1px solid rgba(74, 222, 128, 0.4);
+            padding: 2.5px 8px;
+            border-radius: 20px;
+        }
+
+        .result-actions-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 4px;
+            width: 100%;
+            max-width: 280px;
+        }
+
+        .result-btn-primary {
+            flex: 1.2;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            border: 1px solid rgba(251, 191, 36, 0.7);
+            color: #0f172a;
+            font-size: clamp(7.5px, 1.5vmin, 13px);
+            font-weight: 900;
+            padding: 5px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 2px 12px rgba(245, 158, 11, 0.4);
+            transition: all 0.15s ease;
+        }
+
+        .result-btn-primary:hover {
+            transform: scale(1.04);
+            box-shadow: 0 4px 18px rgba(245, 158, 11, 0.65);
+        }
+
+        .result-btn-secondary {
+            flex: 1;
+            background: rgba(51, 65, 85, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #cbd5e1;
+            font-size: clamp(7.5px, 1.5vmin, 13px);
+            font-weight: 800;
+            padding: 5px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .result-btn-secondary:hover {
+            background: rgba(71, 85, 105, 0.95);
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="battle-window-container">
+        <!-- Header Controls Bar -->
+        <div class="window-header">
+            <div class="header-title-box">
+                <span style="font-size: 11px;">⚔️</span>
+                <span class="header-title">Estadio de Combate Flotante</span>
+            </div>
+            <div class="header-controls">
+                <button id="btnSpeed" class="ctrl-btn" title="Alternar velocidad de combate">⚡ x1</button>
+                <button id="btnAuto" class="ctrl-btn" title="Modo combate automático">🤖 Auto: OFF</button>
+                <button id="btnClose" class="close-btn" title="Cerrar ventana">×</button>
+            </div>
+        </div>
+
+        <!-- 2-Corner Sketch Arena -->
+        <div class="battle-body">
+            <!-- Top-Left: Turn and Stadium State -->
+            <div class="stadium-status-box">
+                <div class="stadium-status-badge" id="turnIndicator">Turno 1</div>
+                <div style="font-size: 7.5px; color: #94a3b8;" id="arenaSubstatus">¡En combate directo!</div>
+            </div>
+
+            <!-- Top-Right: Wild Rival -->
+            <div class="battler-rival">
+                <div class="hp-card">
+                    <div class="hp-track"><div id="rivalHpBar" class="hp-fill"></div></div>
+                    <div class="hp-text" id="rivalHpText">HP --/--</div>
+                </div>
+                <div class="avatar-pod rival-pod">
+                    <img id="rivalSprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Rival">
+                </div>
+                <div>
+                    <span class="name-label" id="rivalName">Buscando rival...</span>
+                    <span class="level-label" id="rivalLevel">Lv. --</span>
+                </div>
+            </div>
+
+            <!-- Bottom-Left: Player -->
+            <div class="battler-player">
+                <div class="hp-card">
+                    <div class="hp-track"><div id="playerHpBar" class="hp-fill"></div></div>
+                    <div class="hp-text" id="playerHpText">HP --/--</div>
+                </div>
+                <div class="avatar-pod player-pod">
+                    <img id="playerSprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Player">
+                </div>
+                <div>
+                    <span class="name-label" id="playerName">Cargando...</span>
+                    <span class="level-label" id="playerLevel">Lv. --</span>
+                </div>
+            </div>
+
+            <!-- Bottom-Right: Action Box -->
+            <div class="action-box">
+                <!-- Move Attacks Mode -->
+                <div id="movesSection" style="display:flex; flex-direction:column; justify-content:space-between; height:100%;">
+                    <div class="moves-grid" id="movesGrid">
+                        <!-- Populated dynamically (2x2 grid) -->
+                    </div>
+                    <div class="quick-tools">
+                        <button class="tool-btn" id="btnPotion">🧪 Poción</button>
+                        <button class="tool-btn" id="btnOpenCatch" style="color:#fbbf24; font-weight:800; border-color:rgba(251,191,36,0.45);">🔴 Capturar</button>
+                        <button class="tool-btn" id="btnSwitch">🔄 Cambiar</button>
+                        <button class="tool-btn btn-run" id="btnRun">🏃 Huir</button>
+                    </div>
+                </div>
+
+                <!-- Catch Console Mode -->
+                <div id="catchSection" class="catch-console" style="display:none;">
+                    <div class="catch-title" id="catchConsoleTitle">🎯 Lanzar Poké Ball:</div>
+                    <div class="balls-grid">
+                        <button class="ball-btn" id="btnBallPoke">
+                            <div class="ball-info">
+                                <span>🔴</span>
+                                <div>
+                                    <div class="ball-title">Poké Ball</div>
+                                    <div class="ball-stock" id="stockPoke">∞</div>
+                                </div>
+                            </div>
+                            <span class="ball-pct-pill" id="ratePoke">65%</span>
+                        </button>
+                        <button class="ball-btn" id="btnBallGreat">
+                            <div class="ball-info">
+                                <span>🔵</span>
+                                <div>
+                                    <div class="ball-title">Super Ball</div>
+                                    <div class="ball-stock" id="stockGreat">x0</div>
+                                </div>
+                            </div>
+                            <span class="ball-pct-pill" id="rateGreat">94%</span>
+                        </button>
+                        <button class="ball-btn" id="btnBallUltra">
+                            <div class="ball-info">
+                                <span>🟡</span>
+                                <div>
+                                    <div class="ball-title">Ultra Ball</div>
+                                    <div class="ball-stock" id="stockUltra">x0</div>
+                                </div>
+                            </div>
+                            <span class="ball-pct-pill" id="rateUltra">99%</span>
+                        </button>
+                        <button class="ball-btn" id="btnBallMaster">
+                            <div class="ball-info">
+                                <span>🟣</span>
+                                <div>
+                                    <div class="ball-title">Master Ball</div>
+                                    <div class="ball-stock" id="stockMaster">x0</div>
+                                </div>
+                            </div>
+                            <span class="ball-pct-pill">100%</span>
+                        </button>
+                    </div>
+                    <div style="display:flex; gap:3px; margin-top:2px;">
+                        <button class="btn-finish-catch" id="btnBackToMoves" style="flex:1; display:none; background:rgba(99,102,241,0.3); border-color:rgba(99,102,241,0.5); color:#a5b4fc;">⚔️ Volver</button>
+                        <button class="btn-finish-catch" id="btnFinishCatch" style="flex:1;">🏃 Dejar ir</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Switch Submenu Overlay -->
+        <div id="switchOverlay" class="switch-overlay" style="display:none;">
+            <div class="switch-header">
+                <span>Cambiar Pokémon:</span>
+                <button id="btnCloseSwitch" class="ctrl-btn">Volver</button>
+            </div>
+            <div class="switch-list" id="switchList"></div>
+        </div>
+
+        <!-- Animated Flying Poké Ball Projectile -->
+        <img id="pokeballProjectile" class="pokeball-projectile" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Poké Ball" style="display:none;">
+
+        <!-- Battle Result Celebration Overlay (Capture / Victory / Defeat) -->
+        <div id="battleResultOverlay" class="battle-result-overlay" style="display:none;">
+            <div id="resultTitle" class="result-badge-title caught">✨ ¡POKÉMON CAPTURADO! ✨</div>
+            <div class="result-avatar-ring">
+                <img id="resultSprite" src="" alt="Captura">
+            </div>
+            <div id="resultInfoText" class="result-info-text">¡Se unió a tu equipo!</div>
+            <div id="resultExpText" class="result-exp-pill">+0 EXP Tokens</div>
+            <div class="result-actions-row">
+                <button id="btnNextBattle" class="result-btn-primary">⚔️ Siguiente Combate</button>
+                <button id="btnCloseOverlay" class="result-btn-secondary">Cerrar</button>
+            </div>
+        </div>
+
+        <!-- Live Combat Text Log Ticker -->
+        <div class="bottom-ticker" id="logTicker">¡Comienza el combate!</div>
+    </div>
+
+    <script>
+        const TYPE_COLORS = {
+            'Normal': '#94a3b8', 'Fuego': '#f97316', 'Agua': '#38bdf8', 'Planta': '#22c55e',
+            'Eléctrico': '#eab308', 'Hielo': '#06b6d4', 'Lucha': '#dc2626', 'Veneno': '#a855f7',
+            'Tierra': '#d97706', 'Volador': '#818cf8', 'Psíquico': '#ec4899', 'Bicho': '#84cc16',
+            'Roca': '#b45309', 'Fantasma': '#7c3aed', 'Dragón': '#6366f1', 'Siniestro': '#475569',
+            'Acero': '#64748b', 'Hada': '#f472b6'
+        };
+
+        const btnClose = document.getElementById('btnClose');
+        const btnSpeed = document.getElementById('btnSpeed');
+        const btnAuto = document.getElementById('btnAuto');
+        const turnIndicator = document.getElementById('turnIndicator');
+        const arenaSubstatus = document.getElementById('arenaSubstatus');
+
+        const rivalName = document.getElementById('rivalName');
+        const rivalLevel = document.getElementById('rivalLevel');
+        const rivalSprite = document.getElementById('rivalSprite');
+        const rivalHpBar = document.getElementById('rivalHpBar');
+        const rivalHpText = document.getElementById('rivalHpText');
+
+        const playerName = document.getElementById('playerName');
+        const playerLevel = document.getElementById('playerLevel');
+        const playerSprite = document.getElementById('playerSprite');
+        const playerHpBar = document.getElementById('playerHpBar');
+        const playerHpText = document.getElementById('playerHpText');
+
+        const movesSection = document.getElementById('movesSection');
+        const movesGrid = document.getElementById('movesGrid');
+        const btnPotion = document.getElementById('btnPotion');
+        const btnOpenCatch = document.getElementById('btnOpenCatch');
+        const btnSwitch = document.getElementById('btnSwitch');
+        const btnRun = document.getElementById('btnRun');
+
+        const catchSection = document.getElementById('catchSection');
+        const btnBallPoke = document.getElementById('btnBallPoke');
+        const btnBallGreat = document.getElementById('btnBallGreat');
+        const btnBallUltra = document.getElementById('btnBallUltra');
+        const btnBallMaster = document.getElementById('btnBallMaster');
+        const stockPoke = document.getElementById('stockPoke');
+        const stockGreat = document.getElementById('stockGreat');
+        const stockUltra = document.getElementById('stockUltra');
+        const stockMaster = document.getElementById('stockMaster');
+        const ratePoke = document.getElementById('ratePoke');
+        const rateGreat = document.getElementById('rateGreat');
+        const rateUltra = document.getElementById('rateUltra');
+        const btnBackToMoves = document.getElementById('btnBackToMoves');
+        const btnFinishCatch = document.getElementById('btnFinishCatch');
+
+        const pokeballProjectile = document.getElementById('pokeballProjectile');
+        const battleResultOverlay = document.getElementById('battleResultOverlay');
+        const resultTitle = document.getElementById('resultTitle');
+        const resultSprite = document.getElementById('resultSprite');
+        const resultInfoText = document.getElementById('resultInfoText');
+        const resultExpText = document.getElementById('resultExpText');
+        const btnNextBattle = document.getElementById('btnNextBattle');
+        const btnCloseOverlay = document.getElementById('btnCloseOverlay');
+
+        const switchOverlay = document.getElementById('switchOverlay');
+        const switchList = document.getElementById('switchList');
+        const btnCloseSwitch = document.getElementById('btnCloseSwitch');
+        const logTicker = document.getElementById('logTicker');
+
+        let companionData = null;
+        let lastBattle = null;
+        let autoTimer = null;
+        let isThrowingBall = false;
+
+        btnClose.addEventListener('click', () => {
+            window.api.toggleBattleWindow();
+        });
+
+        function checkAndScheduleAutoMove() {
+            clearTimeout(autoTimer);
+            const isAuto = (companionData && companionData.pokemon && companionData.pokemon.settings && companionData.pokemon.settings.autoBattle) || btnAuto.classList.contains('active');
+            if (!isAuto) return;
+            if (!lastBattle || lastBattle.isOver || lastBattle.inCatchPhase) return;
+
+            const speed = (companionData && companionData.pokemon && companionData.pokemon.settings && companionData.pokemon.settings.battleSpeed) || (btnSpeed.innerText.includes('x2') ? 2 : 1);
+            const delay = speed === 2 ? 350 : 750;
+            autoTimer = setTimeout(() => {
+                if (lastBattle && !lastBattle.isOver && !lastBattle.inCatchPhase) {
+                    window.api.battleAutoMove();
+                }
+            }, delay);
+        }
+
+        btnSpeed.addEventListener('click', () => {
+            const currentSpeed = btnSpeed.innerText.includes('x2') ? 2 : 1;
+            const newSpeed = currentSpeed === 2 ? 1 : 2;
+            btnSpeed.innerText = `⚡ x${newSpeed}`;
+            if (newSpeed === 2) btnSpeed.classList.add('active');
+            else btnSpeed.classList.remove('active');
+            if (companionData && companionData.pokemon && companionData.pokemon.settings) {
+                companionData.pokemon.settings.battleSpeed = newSpeed;
+            }
+            window.api.toggleBattleSpeed();
+            checkAndScheduleAutoMove();
+        });
+
+        btnAuto.addEventListener('click', () => {
+            const wasAuto = btnAuto.classList.contains('active') || btnAuto.innerText.includes('ON');
+            const nowAuto = !wasAuto;
+            btnAuto.innerText = nowAuto ? '🤖 Auto: ON' : '🤖 Auto: OFF';
+            if (nowAuto) btnAuto.classList.add('active');
+            else btnAuto.classList.remove('active');
+            if (companionData && companionData.pokemon && companionData.pokemon.settings) {
+                companionData.pokemon.settings.autoBattle = nowAuto;
+            }
+            window.api.toggleAutoBattle();
+            checkAndScheduleAutoMove();
+        });
+
+        btnPotion.addEventListener('click', () => {
+            window.api.battleItem('potion');
+        });
+
+        btnRun.addEventListener('click', () => {
+            window.api.battleRun();
+        });
+
+        btnOpenCatch.addEventListener('click', () => {
+            movesSection.style.display = 'none';
+            catchSection.style.display = 'flex';
+            btnBackToMoves.style.display = 'block';
+            if (lastBattle) refreshCatchConsole(lastBattle);
+        });
+
+        btnBackToMoves.addEventListener('click', () => {
+            catchSection.style.display = 'none';
+            movesSection.style.display = 'flex';
+        });
+
+        btnSwitch.addEventListener('click', () => {
+            switchOverlay.style.display = 'flex';
+            renderSwitchOverlay();
+        });
+
+        btnCloseSwitch.addEventListener('click', () => {
+            switchOverlay.style.display = 'none';
+        });
+
+        btnNextBattle.addEventListener('click', () => {
+            battleResultOverlay.style.display = 'none';
+            arenaSubstatus.innerText = 'Buscando nuevo rival...';
+            logTicker.innerText = '¡Iniciando nuevo combate!';
+            if (window.api && window.api.startBattle) {
+                window.api.startBattle();
+            }
+        });
+
+        btnCloseOverlay.addEventListener('click', () => {
+            battleResultOverlay.style.display = 'none';
+            window.api.toggleBattleWindow();
+        });
+
+        btnBallPoke.addEventListener('click', () => throwBallWithAnimation('poke-ball'));
+        btnBallGreat.addEventListener('click', () => throwBallWithAnimation('great-ball'));
+        btnBallUltra.addEventListener('click', () => throwBallWithAnimation('ultra-ball'));
+        btnBallMaster.addEventListener('click', () => throwBallWithAnimation('master-ball'));
+        btnFinishCatch.addEventListener('click', () => window.api.battleFinishCatch());
+
+        function throwBallWithAnimation(ballType) {
+            if (isThrowingBall) return;
+            isThrowingBall = true;
+
+            const ballUrls = {
+                'poke-ball': 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png',
+                'great-ball': 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/great-ball.png',
+                'ultra-ball': 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/ultra-ball.png',
+                'master-ball': 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/master-ball.png'
+            };
+            const ballImgUrl = ballUrls[ballType] || ballUrls['poke-ball'];
+
+            // Disable throw buttons temporarily
+            btnBallPoke.disabled = true;
+            btnBallGreat.disabled = true;
+            btnBallUltra.disabled = true;
+            btnBallMaster.disabled = true;
+
+            const container = document.querySelector('.battle-window-container');
+            const containerRect = container ? container.getBoundingClientRect() : { left: 0, top: 0 };
+            const playerPod = document.querySelector('.player-pod');
+            const rivalPod = document.querySelector('.rival-pod');
+
+            const pRect = playerPod ? playerPod.getBoundingClientRect() : { left: 50, top: 200, width: 60, height: 60 };
+            const rRect = rivalPod ? rivalPod.getBoundingClientRect() : { left: 350, top: 50, width: 60, height: 60 };
+
+            const startX = Math.round(pRect.left + pRect.width / 2 - containerRect.left - 15);
+            const startY = Math.round(pRect.top + pRect.height / 2 - containerRect.top - 15);
+            const targetX = Math.round(rRect.left + rRect.width / 2 - containerRect.left - 15);
+            const targetY = Math.round(rRect.top + rRect.height / 2 - containerRect.top - 15);
+
+            pokeballProjectile.src = ballImgUrl;
+            pokeballProjectile.style.left = `${startX}px`;
+            pokeballProjectile.style.top = `${startY}px`;
+            pokeballProjectile.style.display = 'block';
+
+            logTicker.innerText = `¡Lanzando ${ballType.replace('-', ' ')}...!`;
+
+            // Parabolic arc flight
+            const dx = targetX - startX;
+            const dy = targetY - startY;
+
+            const animation = pokeballProjectile.animate([
+                { transform: 'translate(0px, 0px) scale(0.8) rotate(0deg)', offset: 0 },
+                { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 55}px) scale(1.3) rotate(360deg)`, offset: 0.5 },
+                { transform: `translate(${dx}px, ${dy}px) scale(1) rotate(720deg)`, offset: 1 }
+            ], {
+                duration: 480,
+                easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                fill: 'forwards'
+            });
+
+            animation.onfinish = () => {
+                pokeballProjectile.style.display = 'none';
+
+                // Flash rival sprite and shrink into ball
+                rivalSprite.classList.add('rival-flash-captured');
+
+                setTimeout(() => {
+                    rivalSprite.classList.remove('rival-flash-captured');
+                    rivalSprite.src = ballImgUrl;
+                    rivalSprite.classList.add('ball-shaking');
+
+                    // Dispatch catch action to backend
+                    window.api.battleCatch(ballType);
+                    isThrowingBall = false;
+                }, 300);
+            };
+        }
+
+        function renderSwitchOverlay() {
+            switchList.innerHTML = '';
+            const team = (companionData && companionData.pokemon && companionData.pokemon.team) || [];
+            team.forEach((member, idx) => {
+                if (!member.isEmpty && !member.isEgg) {
+                    const item = document.createElement('div');
+                    item.className = 'switch-item';
+                    item.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <img src="${member.iconUrl}" style="width:20px; height:20px; image-rendering:pixelated;">
+                            <span style="font-size:8px; font-weight:800; color:#f8fafc;">${member.name} (Lv. ${member.level})</span>
+                        </div>
+                        <button class="ctrl-btn">Elegir</button>
+                    `;
+                    item.addEventListener('click', () => {
+                        window.api.battleSwitch(idx);
+                        switchOverlay.style.display = 'none';
+                    });
+                    switchList.appendChild(item);
+                }
+            });
+        }
+
+        if (window.api.onUpdate) {
+            window.api.onUpdate((data) => {
+                companionData = data;
+                const p = data.pokemon;
+                const isAuto = p.settings && p.settings.autoBattle;
+                const speed = (p.settings && p.settings.battleSpeed) || 1;
+
+                btnAuto.innerText = isAuto ? '🤖 Auto: ON' : '🤖 Auto: OFF';
+                if (isAuto) btnAuto.classList.add('active');
+                else btnAuto.classList.remove('active');
+
+                btnSpeed.innerText = `⚡ x${speed}`;
+                if (speed === 2) btnSpeed.classList.add('active');
+                else btnSpeed.classList.remove('active');
+
+                if (lastBattle && (lastBattle.inCatchPhase || catchSection.style.display === 'flex')) {
+                    refreshCatchConsole(lastBattle);
+                }
+
+                // Check and trigger auto move if enabled!
+                checkAndScheduleAutoMove();
+            });
+        }
+
+        rivalSprite.onerror = function() {
+            this.src = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png';
+        };
+        playerSprite.onerror = function() {
+            this.src = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png';
+        };
+
+        function refreshCatchConsole(battle) {
+            if (!battle) return;
+            const inv = (companionData && companionData.pokemon && companionData.pokemon.inventory) || {};
+            const gCount = inv.greatballs || 0;
+            const uCount = inv.ultraballs || 0;
+            const mCount = inv.masterballs || 0;
+
+            const pRate = (battle.catchRates && battle.catchRates.pokeball) || 65;
+            const gRate = (battle.catchRates && battle.catchRates.greatball) || 94;
+            const uRate = (battle.catchRates && battle.catchRates.ultraball) || 99;
+
+            // Poké Balls are INFINITE!
+            stockPoke.innerText = '∞';
+            stockGreat.innerText = `x${gCount}`;
+            stockUltra.innerText = `x${uCount}`;
+            stockMaster.innerText = `x${mCount}`;
+
+            ratePoke.innerText = `${pRate}%`;
+            rateGreat.innerText = `${gRate}%`;
+            rateUltra.innerText = `${uRate}%`;
+
+            btnBallPoke.disabled = false; // Always enabled!
+            btnBallGreat.disabled = gCount <= 0;
+            btnBallUltra.disabled = uCount <= 0;
+            btnBallMaster.disabled = mCount <= 0;
+
+            btnBallPoke.title = `Poké Ball: ${pRate}% probabilidad. (Ilimitadas: lanzamientos infinitos)`;
+            btnBallGreat.title = `Super Ball: ${gRate}% probabilidad de captura. (Tienes ${gCount})`;
+            btnBallUltra.title = `Ultra Ball: ${uRate}% probabilidad de captura. (Tienes ${uCount})`;
+            btnBallMaster.title = `Master Ball: 100% captura infalible. (Tienes ${mCount})`;
+        }
+
+        if (window.api.onBattleUpdate) {
+            window.api.onBattleUpdate((battle) => {
+                lastBattle = battle;
+
+                if (!battle) return;
+
+                // Handle Over / Ended Battles
+                if (battle.isOver) {
+                    clearTimeout(autoTimer);
+                    rivalSprite.classList.remove('ball-shaking');
+
+                    if (battle.result === 'caught') {
+                        // Wild was captured!
+                        resultTitle.className = 'result-badge-title caught';
+                        resultTitle.innerText = `✨ ¡${battle.wild ? battle.wild.name : 'POKÉMON'} CAPTURADO! ✨`;
+                        resultSprite.src = (battle.wild && battle.wild.spriteUrl) ? battle.wild.spriteUrl : 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png';
+                        resultInfoText.innerText = `Lv. ${battle.wild ? battle.wild.level : '?'} (${battle.wild ? battle.wild.type : ''}) • ¡Guardado en tu PC o Equipo!`;
+                        resultExpText.innerText = `✨ +${(battle.expReward || 0).toLocaleString()} Tokens de EXP ganados`;
+                        btnNextBattle.innerText = '⚔️ Siguiente Combate';
+                        battleResultOverlay.style.display = 'flex';
+
+                        logTicker.innerText = `¡Gotcha! ¡${battle.wild ? battle.wild.name : 'El rival'} fue capturado exitosamente!`;
+                        arenaSubstatus.innerText = '✨ ¡Captura completada con éxito! ✨';
+                        return;
+                    } else if (battle.result === 'victory') {
+                        resultTitle.className = 'result-badge-title victory';
+                        resultTitle.innerText = `🏆 ¡VICTORIA! 🏆`;
+                        resultSprite.src = (battle.wild && battle.wild.spriteUrl) ? battle.wild.spriteUrl : '';
+                        resultInfoText.innerText = `¡Derrotaste a ${battle.wild ? battle.wild.name : 'Rival'} salvaje!`;
+                        resultExpText.innerText = `✨ +${(battle.expReward || 0).toLocaleString()} Tokens de EXP ganados`;
+                        btnNextBattle.innerText = '⚔️ Siguiente Combate';
+                        battleResultOverlay.style.display = 'flex';
+
+                        logTicker.innerText = `¡Victoria en combate! Ganaste +${(battle.expReward || 0).toLocaleString()} EXP.`;
+                        arenaSubstatus.innerText = '🏆 ¡Victoria conseguida!';
+                        return;
+                    } else if (battle.result === 'defeat') {
+                        resultTitle.className = 'result-badge-title defeat';
+                        resultTitle.innerText = `💀 ¡DERROTA! 💀`;
+                        resultSprite.src = (battle.player && battle.player.spriteUrl) ? battle.player.spriteUrl : '';
+                        resultInfoText.innerText = `¡Tu ${battle.player ? battle.player.name : 'Pokémon'} se debilitó!`;
+                        resultExpText.innerText = `+50 Tokens de consolación`;
+                        btnNextBattle.innerText = '⚔️ Intentar de Nuevo';
+                        battleResultOverlay.style.display = 'flex';
+
+                        logTicker.innerText = `¡Tu ${battle.player ? battle.player.name : 'Pokémon'} se debilitó! El combate ha terminado.`;
+                        arenaSubstatus.innerText = '💀 Derrotado.';
+                        return;
+                    } else if (battle.result === 'escaped') {
+                        resultTitle.className = 'result-badge-title victory';
+                        resultTitle.innerText = `🏃 ¡ESCAPASTE!`;
+                        resultSprite.src = (battle.player && battle.player.spriteUrl) ? battle.player.spriteUrl : '';
+                        resultInfoText.innerText = `Escapaste sano y salvo del combate.`;
+                        resultExpText.innerText = `Sin recompensas`;
+                        btnNextBattle.innerText = '⚔️ Buscar Otro Rival';
+                        battleResultOverlay.style.display = 'flex';
+
+                        logTicker.innerText = '¡Escapaste sano y salvo!';
+                        arenaSubstatus.innerText = '🏃 Huida exitosa.';
+                        return;
+                    } else {
+                        arenaSubstatus.innerText = 'Combate finalizado.';
+                        if (window.api && window.api.startBattle && (!lastBattle || !lastBattle.wild)) {
+                            window.api.startBattle();
+                        }
+                        return;
+                    }
+                }
+
+                // Battle is Active: ensure result overlay is hidden
+                battleResultOverlay.style.display = 'none';
+
+                // Check if rival was shaking from a throw attempt that broke out:
+                if (rivalSprite.classList.contains('ball-shaking')) {
+                    rivalSprite.classList.remove('ball-shaking');
+                    if (battle.wild) rivalSprite.src = battle.wild.spriteUrl;
+                    rivalSprite.classList.add('rival-burst-out');
+                    setTimeout(() => rivalSprite.classList.remove('rival-burst-out'), 500);
+                }
+
+                turnIndicator.innerText = `Turno ${battle.turn || 1}`;
+                arenaSubstatus.innerText = battle.inCatchPhase ? '¡Fase de captura!' : '¡En combate directo!';
+
+                // Wild
+                if (battle.wild) {
+                    rivalName.innerText = `${battle.wild.name} ${battle.wild.isShiny ? '★' : ''}`;
+                    rivalLevel.innerText = `Lv. ${battle.wild.level} (${battle.wild.type})`;
+                    if (!rivalSprite.classList.contains('ball-shaking')) {
+                        rivalSprite.src = battle.wild.spriteUrl;
+                    }
+                    const wildHpPercent = Math.max(0, Math.min(100, Math.round((battle.wild.currentHP / battle.wild.maxHP) * 100)));
+                    rivalHpBar.style.width = `${wildHpPercent}%`;
+                    rivalHpBar.style.background = wildHpPercent > 50 ? '#10b981' : wildHpPercent > 20 ? '#fbbf24' : '#ef4444';
+                    rivalHpText.innerText = `HP ${battle.wild.currentHP}/${battle.wild.maxHP}`;
+                }
+
+                // Player
+                if (battle.player) {
+                    playerName.innerText = `${battle.player.name} ${battle.player.isShiny ? '★' : ''}`;
+                    playerLevel.innerText = `Lv. ${battle.player.level} (${battle.player.type})`;
+                    playerSprite.src = battle.player.spriteUrl;
+                    const playerHpPercent = Math.max(0, Math.min(100, Math.round((battle.player.currentHP / battle.player.maxHP) * 100)));
+                    playerHpBar.style.width = `${playerHpPercent}%`;
+                    playerHpBar.style.background = playerHpPercent > 50 ? '#10b981' : playerHpPercent > 20 ? '#fbbf24' : '#ef4444';
+                    playerHpText.innerText = `HP ${battle.player.currentHP}/${battle.player.maxHP}`;
+                }
+
+                // Log
+                const lastMsg = battle.recentLog && battle.recentLog.length ? battle.recentLog[battle.recentLog.length - 1] : '¡En combate!';
+                logTicker.innerText = lastMsg;
+                logTicker.title = (battle.recentLog || []).join('\n');
+
+                if (battle.inCatchPhase) {
+                    clearTimeout(autoTimer);
+                    movesSection.style.display = 'none';
+                    catchSection.style.display = 'flex';
+                    btnBackToMoves.style.display = 'none'; // Cannot go back to moves if wild HP is 0
+                    btnFinishCatch.style.display = 'block';
+                    refreshCatchConsole(battle);
+                } else if (catchSection.style.display === 'flex') {
+                    // Manual catch console open while HP > 0
+                    btnBackToMoves.style.display = 'block';
+                    btnFinishCatch.style.display = 'none';
+                    refreshCatchConsole(battle);
+                } else {
+                    movesSection.style.display = 'flex';
+                    catchSection.style.display = 'none';
+
+                    // 2x2 grid attacks
+                    movesGrid.innerHTML = '';
+                    (battle.player.moves || []).slice(0, 4).forEach((mv, idx) => {
+                        const btn = document.createElement('button');
+                        btn.className = 'move-btn';
+                        const typeColor = TYPE_COLORS[mv.type] || '#6366f1';
+                        btn.innerHTML = `
+                            <div class="move-header">
+                                <span class="move-name">${mv.name}</span>
+                                <span class="move-type-tag" style="background:${typeColor};">${mv.type}</span>
+                            </div>
+                            <div class="move-footer">
+                                <span class="move-pp">PP ${mv.currentPP}/${mv.maxPP}</span>
+                                <span class="move-pwr">POT ${mv.power || '-'}</span>
+                            </div>
+                        `;
+                        btn.disabled = mv.currentPP <= 0;
+                        btn.addEventListener('click', () => {
+                            window.api.battleMove(idx);
+                        });
+                        movesGrid.appendChild(btn);
+                    });
+
+                    // Auto Battle
+                    checkAndScheduleAutoMove();
+                }
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>VS Prompt</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-drag: none;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            width: 170px;
+            height: 60px;
+            background: transparent;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-app-region: no-drag;
+        }
+
+        .vs-card {
+            width: 162px;
+            height: 54px;
+            background: rgba(15, 23, 42, 0.94);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(245, 158, 11, 0.5);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 4px 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6), 0 0 10px rgba(245, 158, 11, 0.25);
+            animation: popIn 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .vs-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .vs-title {
+            font-size: 8.5px;
+            font-weight: 900;
+            color: #f59e0b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .vs-timer {
+            font-size: 8px;
+            font-weight: 800;
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.15);
+            padding: 1px 4px;
+            border-radius: 4px;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .vs-buttons {
+            display: flex;
+            gap: 5px;
+            margin-top: 2px;
+        }
+
+        .btn-vs {
+            flex: 1;
+            height: 22px;
+            border: none;
+            border-radius: 4px;
+            font-size: 8px;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            transition: all 0.15s ease;
+        }
+
+        .btn-fight {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #ffffff;
+            box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-fight:hover {
+            filter: brightness(1.15);
+            transform: translateY(-1px);
+        }
+
+        .btn-flee {
+            background: rgba(51, 65, 85, 0.8);
+            color: #cbd5e1;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        .btn-flee:hover {
+            background: rgba(71, 85, 105, 0.9);
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+    <div class="vs-card">
+        <div class="vs-header">
+            <span class="vs-title">⚔️ ¿Luchar?</span>
+            <span class="vs-timer" id="timerBadge">5s</span>
+        </div>
+        <div class="vs-buttons">
+            <button class="btn-vs btn-fight" id="btnFight">⚔️ Sí</button>
+            <button class="btn-vs btn-flee" id="btnFlee">🏃 No</button>
+        </div>
+    </div>
+
+    <script>
+        let secondsLeft = 5;
+        const timerBadge = document.getElementById('timerBadge');
+        const btnFight = document.getElementById('btnFight');
+        const btnFlee = document.getElementById('btnFlee');
+
+        let handled = false;
+
+        function triggerFight() {
+            if (handled) return;
+            handled = true;
+            if (window.vsApi && window.vsApi.fightInteractive) {
+                window.vsApi.fightInteractive();
+            } else if (window.vsApi && window.vsApi.confirm) {
+                window.vsApi.confirm();
+            }
+        }
+
+        function triggerFlee() {
+            if (handled) return;
+            handled = true;
+            if (window.vsApi && window.vsApi.flee) {
+                window.vsApi.flee();
+            }
+        }
+
+        function triggerTimeout() {
+            if (handled) return;
+            handled = true;
+            if (window.vsApi && window.vsApi.timeoutBackground) {
+                window.vsApi.timeoutBackground();
+            } else if (window.vsApi && window.vsApi.confirm) {
+                window.vsApi.confirm();
+            }
+        }
+
+        btnFight.addEventListener('click', (e) => {
+            e.stopPropagation();
+            triggerFight();
+        });
+
+        btnFlee.addEventListener('click', (e) => {
+            e.stopPropagation();
+            triggerFlee();
+        });
+
+        const countdown = setInterval(() => {
+            secondsLeft--;
+            if (secondsLeft <= 0) {
+                clearInterval(countdown);
+                triggerTimeout(); // If nothing is pressed within 5s, simulate battle in background!
+            } else {
+                timerBadge.innerText = `${secondsLeft}s`;
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
