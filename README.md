@@ -10,10 +10,12 @@
 ![GBA Box](https://img.shields.io/badge/PC_Box-GBA_Retro-10B981?style=for-the-badge)
 ![AI Agents](https://img.shields.io/badge/AI_Agents-Gemini%20%7C%20OpenCode%20Ready-8B5CF6?style=for-the-badge)
 
+[![Descargar para Windows](https://img.shields.io/badge/Descargar_PokeBar_v1.0.0-Instalador_.EXE-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/vickotoAguilera/PokeBar/releases/tag/v1.0.0)
+
 **Tu Mascota Virtual Pokémon y Compañero de Escritorio para Gamers y Programadores.**  
 *Convierte tu actividad diaria en la PC, líneas de código y tokens en una experiencia viva: incuba huevos, captura Pokémon salvajes, evoluciona a tu equipo y combate en un estadio flotante en tiempo real.*
 
-[Origen del Proyecto](#origen-del-proyecto-y-evolución-desde-macos) • [Características](#características-principales) • [Manual de Botones](#manual-completo-de-botones-e-interfaz) • [Guía de EXP](#sistema-de-experiencia-exp-y-niveles-1-100) • [Economía y Dinero](#economía-del-juego-y-saldo-de-tienda) • [Capturas](#sistema-de-capturas-y-poké-balls) • [Habilidades](#sistema-de-habilidades-ataques-y-reemplazo) • [Estrellas y Rangos](#sistema-de-estrellas-rangos-f-a-sss-y-shinies) • [Agentes y Comunidad](#compatibilidad-de-agentes--roadmap-comunitario) • [Instalación](#instalación-y-puesta-en-marcha) • [Atajos](#atajos-de-teclado-y-controles)
+[Descargar (.EXE)](#método-1-instalador-autónomo-windows-exe--recomendado) • [Origen del Proyecto](#origen-del-proyecto-y-evolución-desde-macos) • [Características](#características-principales) • [Manual de Botones](#manual-completo-de-botones-e-interfaz) • [Guía de EXP](#sistema-de-experiencia-exp-y-niveles-1-100) • [Economía y Dinero](#economía-del-juego-y-saldo-de-tienda) • [Capturas](#sistema-de-capturas-y-poké-balls) • [Habilidades](#sistema-de-habilidades-ataques-y-reemplazo) • [Estrellas y Rangos](#sistema-de-estrellas-rangos-f-a-sss-y-shinies) • [Agentes y Comunidad](#compatibilidad-de-agentes--roadmap-comunitario) • [Atajos](#atajos-de-teclado-y-controles)
 
 </div>
 
@@ -371,14 +373,23 @@ Cada especie cuenta con una escala de potencial competitivo de 9 rangos que otor
 ## Instalación y Puesta en Marcha
 
 ### Método 1: Instalador Autónomo Windows (.exe) — Recomendado
-No necesitas instalar Node.js, npm, Python ni ninguna consola:
-1. Ejecuta el archivo instalador:
-   ```plaintext
-   PokeBar Setup 1.0.0.exe
-   ```
-2. El asistente de instalación configurará el programa en tu equipo y creará automáticamente el acceso directo en el **Escritorio** y en el **Menú Inicio** con el icono oficial de PokeBar.
-3. Haz doble clic en el acceso directo del escritorio para iniciar el juego de inmediato.
-4. Para desinstalar en el futuro, puedes hacerlo limpiamente desde "Configuración > Aplicaciones instaladas" de Windows o con el desinstalador de la carpeta del programa.
+Descarga directa para jugadores: **[Descargar PokeBar v1.0.0 para Windows (.EXE)](https://github.com/vickotoAguilera/PokeBar/releases/tag/v1.0.0)**
+
+#### ¿Qué hace este instalador autónomo?
+* **Entorno 100% Embebido:** Incluye internamente el motor de Electron (Chromium + Node.js) y las librerías nativas de base de datos (`better-sqlite3`) precompiladas para Windows 10 y 11 (64-bit).
+* **Cero Requisitos:** No necesitas tener instalado Node.js, npm, Python, Git ni abrir consolas de comandos. Cualquier persona puede instalarlo y jugar en 1 clic.
+* **Instalación Inteligente (NSIS):**
+  * Permite elegir la carpeta de instalación o instalar en la ruta recomendada del sistema.
+  * Crea automáticamente el acceso directo en el **Escritorio** con el **icono oficial 3D** de PokeBar.
+  * Crea la entrada en el **Menú Inicio** de Windows.
+  * Registra un desinstalador limpio en el Panel de Control / Configuración de Windows.
+
+#### Pasos de Instalación:
+1. Descarga el archivo instalador oficial desde la sección de Releases:
+   * **[PokeBar Setup 1.0.0.exe](https://github.com/vickotoAguilera/PokeBar/releases/tag/v1.0.0)**
+2. Haz doble clic en el instalador descargado y sigue las instrucciones del asistente en pantalla.
+3. Al finalizar, haz doble clic en el icono de **PokeBar** en tu escritorio para iniciar tu aventura de inmediato.
+4. Para desinstalarlo en el futuro, puedes hacerlo limpiamente desde "Configuración > Aplicaciones instaladas" de Windows.
 
 ---
 
@@ -458,8 +469,7 @@ PokeTokenBar-Windows/
 ├── package.json                  # Manifiesto de dependencias y scripts de ejecución
 ├── start.bat                     # Lanzador rápido en Windows (sin ventana de consola)
 ├── reiniciar.bat                 # Reiniciador automático de procesos
-├── CHANGELOG_AGENTS.md           # Bitácora histórica detallada de versiones y refactorizaciones
-├── PROJECT_STATE.md              # Estado arquitectónico y mapa de dependencias
+├── LICENSE                       # Licencia oficial de código abierto MIT
 └── README.md                     # Documentación oficial del proyecto
 ```
 
