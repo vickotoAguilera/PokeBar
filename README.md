@@ -476,5 +476,5 @@ Estamos expandiendo activamente la arquitectura de `TokenScanner` para convertir
 ---
 
 <div align="center">
-  <sub>Desarrollado con 💖 para la comunidad de desarrolladores y entrenadores Pokémon.</sub>
+  <sub>Desarrollado con 💖 por Vickoto Aguilera para la comunidad de desarrolladores y entrenadores Pokémon. (Versión de prueba y verificación)</sub>
 </div>
