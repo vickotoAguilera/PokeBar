@@ -1,7 +1,40 @@
 param(
-    [string]$AppPath = "C:\Users\Vickoto\Documents\ias y programas\agents\PokeTokenBar-Windows\node_modules\electron\dist\electron.exe",
-    [string]$AppDir = "C:\Users\Vickoto\Documents\ias y programas\agents\PokeTokenBar-Windows"
+    [string]$AppPath,
+    [string]$AppDir
 )
+
+$ErrorActionPreference = "Stop"
+
+$projectDir = (Resolve-Path -LiteralPath $PSScriptRoot).Path
+if ([string]::IsNullOrWhiteSpace($AppDir)) {
+    $AppDir = $projectDir
+} else {
+    $AppDir = (Resolve-Path -LiteralPath $AppDir -ErrorAction Stop).Path
+}
+
+if (-not (Test-Path -LiteralPath $AppDir -PathType Container)) {
+    throw "La carpeta de PokeTokenBar no existe: $AppDir"
+}
+
+if ([string]::IsNullOrWhiteSpace($AppPath)) {
+    $AppPath = Join-Path $AppDir "node_modules\electron\dist\electron.exe"
+} else {
+    if (-not [IO.Path]::IsPathRooted($AppPath)) {
+        $AppPath = Join-Path $AppDir $AppPath
+    }
+    $candidate = Resolve-Path -LiteralPath $AppPath -ErrorAction Stop
+    $AppPath = $candidate.Path
+}
+
+if (-not (Test-Path -LiteralPath $AppPath -PathType Leaf) -or
+    [IO.Path]::GetFileName($AppPath) -ine "electron.exe") {
+    throw "AppPath debe apuntar al ejecutable electron.exe, no a un script o código JavaScript: $AppPath"
+}
+
+$mainScript = Join-Path $AppDir "src\main.js"
+if (-not (Test-Path -LiteralPath $mainScript -PathType Leaf)) {
+    throw "No se encontró el punto de entrada de PokeTokenBar: $mainScript"
+}
 
 Add-Type @'
 using System;
@@ -58,7 +91,7 @@ public class Win32Launcher {
         si.lpDesktop = @"WinSta0\Default";
         PROCESS_INFORMATION pi = new PROCESS_INFORMATION();
         
-        string cmd = "\"" + exe + "\" \"" + dir + "\"";
+        string cmd = "\"" + exe + "\" \"" + dir + "\" --poketokenbar-app=PokeTokenBar-Windows";
         // 0x01000000 = CREATE_BREAKAWAY_FROM_JOB, 0x00000200 = CREATE_NEW_PROCESS_GROUP, 0x00000008 = DETACHED_PROCESS
         uint flags = 0x01000208;
         bool ok = CreateProcess(null, cmd, IntPtr.Zero, IntPtr.Zero, false, flags, IntPtr.Zero, dir, ref si, out pi);

@@ -426,6 +426,7 @@ Si deseas colaborar, probar o modificar el código fuente:
 
 3. **Ejecutar en Desarrollo:**
    * Haz doble clic en **`start.bat`** (inicia el juego en segundo plano).
+   * O usa el lanzador PowerShell **`launch.ps1`** (valida `electron.exe` antes de arrancar).
    * O ejecuta desde tu consola:
      ```bash
      npm start
@@ -485,7 +486,10 @@ PokeTokenBar-Windows/
 ├── .gitignore                    # Filtro de seguridad que excluye pruebas, logs y datos locales
 ├── package.json                  # Manifiesto de dependencias y scripts de ejecución
 ├── start.bat                     # Lanzador rápido en Windows (sin ventana de consola)
+├── launch.ps1                    # Lanzador PowerShell con validación de electron.exe
+├── run.bat                       # Lanzador alternativo con flags de app
 ├── reiniciar.bat                 # Reiniciador automático de procesos
+├── PokeTokenBar.vbs              # Lanzador silencioso (sin consola)
 ├── LICENSE                       # Licencia oficial de código abierto MIT
 └── README.md                     # Documentación oficial del proyecto
 ```

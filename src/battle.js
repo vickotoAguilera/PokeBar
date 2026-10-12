@@ -403,7 +403,6 @@ class BattleEngine {
             return {
                 success: true,
                 inCatchPhase: true,
-                expReward: b.expReward,
                 battleState: this.getBattleState()
             };
         }
@@ -462,16 +461,20 @@ class BattleEngine {
     throwPokeball(ballType = 'poke-ball') {
         if (!this.isInBattle()) return { success: false, msg: 'No hay combate activo' };
         const b = this.activeBattle;
+        if (!b.inCatchPhase) {
+            return { success: false, msg: 'No estás en fase de captura' };
+        }
 
-        const ballName = ballType.includes('master') ? 'Master Ball'
-            : ballType.includes('ultra') ? 'Ultra Ball'
-            : ballType.includes('great') || ballType.includes('super') ? 'Super Ball'
+        const normalizedBallType = String(ballType || 'poke-ball').toLowerCase();
+        const ballName = normalizedBallType.includes('master') ? 'Master Ball'
+            : normalizedBallType.includes('ultra') ? 'Ultra Ball'
+            : normalizedBallType.includes('great') || normalizedBallType.includes('super') ? 'Super Ball'
             : 'Poké Ball';
 
         b.turn++;
         b.log.push(`¡Lanzaste una ${ballName}!`);
 
-        const percentChance = calculateCatchRatePercent(b.wild.id, ballType);
+        const percentChance = calculateCatchRatePercent(b.wild.id, normalizedBallType);
         const catchChance = percentChance / 100;
         const roll = Math.random();
 
@@ -520,6 +523,9 @@ class BattleEngine {
     finishCatchPhase() {
         if (!this.isInBattle()) return { success: false, msg: 'No hay combate activo' };
         const b = this.activeBattle;
+        if (!b.inCatchPhase) {
+            return { success: false, msg: 'El combate aún no está en fase de captura' };
+        }
         b.isOver = true;
         b.inCatchPhase = false;
         b.result = 'victory';

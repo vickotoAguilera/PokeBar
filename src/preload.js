@@ -23,8 +23,6 @@ contextBridge.exposeInMainWorld('api', {
     onWalkerExpGain: (callback) => ipcRenderer.on('walker-exp-gain', (_event, data) => callback(data)),
     onWalkerItemPickup: (callback) => ipcRenderer.on('walker-item-pickup', (_event, data) => callback(data)),
     onBattleUpdate: (callback) => ipcRenderer.on('battle-update', (_event, data) => callback(data)),
-    onWildEncounterAlert: (callback) => ipcRenderer.on('wild-encounter-alert', (_event, data) => callback(data)),
-    onWalkerEncounterStart: (callback) => ipcRenderer.on('walker-encounter-start', (_event, data) => callback(data)),
     onWalkerEncounterEnd: (callback) => ipcRenderer.on('walker-encounter-end', (_event) => callback()),
     onOpenBattleTab: (callback) => ipcRenderer.on('open-battle-tab', (_event) => callback()),
     onOpenEmbeddedBattle: (callback) => ipcRenderer.on('open-embedded-battle', (_event, data) => callback(data)),

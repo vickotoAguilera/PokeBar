@@ -2,14 +2,38 @@ const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, screen, globalShor
 const path = require('path');
 const fs = require('fs');
 
-const logPath = path.join(__dirname, '..', 'app.log');
+const logPath = app.isPackaged
+    ? path.join(app.getPath('logs'), 'main.log')
+    : path.join(__dirname, '..', 'app.log');
 
 function log(msg) {
     const entry = `[${new Date().toISOString()}] ${msg}\n`;
     try {
+        fs.mkdirSync(path.dirname(logPath), { recursive: true });
         fs.appendFileSync(logPath, entry);
     } catch (e) {}
     console.log(msg);
+}
+
+let processPidFile = null;
+
+function writeProcessPid(userDataPath) {
+    try {
+        processPidFile = path.join(userDataPath, 'poketokenbar.pid');
+        fs.mkdirSync(path.dirname(processPidFile), { recursive: true });
+        fs.writeFileSync(processPidFile, String(process.pid), 'utf8');
+    } catch (e) {
+        log(`[PID FILE ERROR] ${e.message}`);
+    }
+}
+
+function removeProcessPid() {
+    try {
+        if (!processPidFile || !fs.existsSync(processPidFile)) return;
+        if (fs.readFileSync(processPidFile, 'utf8').trim() === String(process.pid)) {
+            fs.unlinkSync(processPidFile);
+        }
+    } catch (e) {}
 }
 
 const icoPath = path.join(__dirname, 'icon.ico');
@@ -55,6 +79,7 @@ let vsPromptWindow = null;
 let scanner = null;
 let companion = null;
 let latestStats = null;
+let lastScannerErrorSignature = null;
 let battleEngine = new BattleEngine();
 let isWalkerEncounterActive = false;
 let currentWalkerWild = null;
@@ -62,12 +87,69 @@ let encounterCooldown = 120;
 let rivalWalkerX = 0;
 let rivalWalkerDir = -1;
 let isCollided = false;
+let autoBattleTimer = null;
 
 function formatNumber(num) {
     if (num >= 1000000000) return (num / 1000000000).toFixed(2) + 'B';
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return (num || 0).toLocaleString();
+}
+
+function clearAutoBattleTimer() {
+    if (autoBattleTimer !== null) {
+        clearTimeout(autoBattleTimer);
+        autoBattleTimer = null;
+    }
+}
+
+function isAutoBattleReady() {
+    return !!(
+        companion &&
+        battleEngine &&
+        companion.state.settings &&
+        companion.state.settings.autoBattle &&
+        battleEngine.isInBattle() &&
+        battleEngine.activeBattle &&
+        !battleEngine.activeBattle.inCatchPhase
+    );
+}
+
+function applyBattleActionResult(res, slotIdx) {
+    if (!companion || !res) return;
+
+    if (res.inCatchPhase) {
+        companion.ensureRescuePokeballs();
+    } else if (res.expReward) {
+        companion.awardBattleExp(res.expReward, slotIdx);
+    }
+
+    if (battleEngine.activeBattle && battleEngine.activeBattle.isOver) {
+        companion.reviveTeam();
+        encounterCooldown = 120;
+    }
+}
+
+function executeAutoBattleTurn() {
+    if (!isAutoBattleReady()) return;
+
+    const slotIdx = battleEngine.activeBattle.player ? battleEngine.activeBattle.player.slotIndex : null;
+    const res = battleEngine.executeAutoMove();
+    applyBattleActionResult(res, slotIdx);
+    broadcastBattleUpdate(battleEngine.getBattleState());
+    updateAll();
+    scheduleAutoBattleMove();
+}
+
+function scheduleAutoBattleMove() {
+    clearAutoBattleTimer();
+    if (!isAutoBattleReady()) return;
+
+    const delay = companion.state.settings.battleSpeed === 2 ? 350 : 750;
+    autoBattleTimer = setTimeout(() => {
+        autoBattleTimer = null;
+        executeAutoBattleTurn();
+    }, delay);
 }
 
 function createPetWindow() {
@@ -634,6 +716,15 @@ function updateTrayMenu() {
 function updateAll() {
     try {
         const tokens = scanner.scan();
+        if (tokens.scannerError) {
+            const errorSignature = `${tokens.error || 'lectura no disponible'}:${tokens.errorCount || 1}`;
+            if (errorSignature !== lastScannerErrorSignature) {
+                log(`[TOKEN SCANNER ERROR] ${tokens.error || 'lectura no disponible'} (${tokens.errorCount || 1}); conservando el último estado válido`);
+                lastScannerErrorSignature = errorSignature;
+            }
+            return;
+        }
+        lastScannerErrorSignature = null;
         const pokemon = companion.updateWithTokens(tokens.todayTokens, tokens.totalTokens);
         latestStats = { tokens, pokemon };
 
@@ -855,6 +946,7 @@ ipcMain.on('action-upgrade-species-rank', (_event, speciesId) => {
 ipcMain.on('action-toggle-hide-on-fullscreen', (_event, enabled) => {
     if (companion) {
         companion.updateSetting('hideOnFullscreen', !!enabled);
+        updateAll();
     }
 });
 
@@ -888,13 +980,16 @@ ipcMain.on('action-dismiss-move-learn', () => {
 });
 
 // Turn-Based Battle Engine
-ipcMain.on('action-start-battle', (_event, slotIndex, forcedWildSpeciesId) => {
-    if (companion) {
-        const targetSlot = (slotIndex !== undefined && slotIndex !== null) ? slotIndex : companion.state.leadIndex;
-        const playerMember = companion.state.team[targetSlot];
-        battleEngine.startBattle(playerMember, targetSlot, forcedWildSpeciesId, companion.state.team);
+ipcMain.on('action-start-battle', (_event, slotIndex = null, forcedSpeciesId = null) => {
+    if (companion && battleEngine) {
+        const leadSlot = (slotIndex !== null && slotIndex !== undefined) ? slotIndex : companion.state.leadIndex;
+        const leader = companion.state.team[leadSlot];
+        if (!leader || leader.isEgg) return;
+
+        battleEngine.startBattle(leader, leadSlot, forcedSpeciesId, companion.state.team);
         ensureBattleWindow();
         broadcastBattleUpdate(battleEngine.getBattleState());
+        updateAll();
     }
 });
 
@@ -918,37 +1013,20 @@ ipcMain.on('action-trigger-walker-encounter', (_event, forcedSpeciesId) => {
 
 ipcMain.on('action-battle-move', (_event, moveIndex) => {
     if (battleEngine && companion) {
+        clearAutoBattleTimer();
         const slotIdx = (battleEngine.activeBattle && battleEngine.activeBattle.player) ? battleEngine.activeBattle.player.slotIndex : null;
         const res = battleEngine.executePlayerMove(moveIndex);
-        if (res && res.inCatchPhase) {
-            companion.ensureRescuePokeballs();
-        } else if (res && res.expReward) {
-            companion.awardBattleExp(res.expReward, slotIdx);
-        }
-        if (battleEngine.activeBattle && battleEngine.activeBattle.isOver) {
-            companion.reviveTeam();
-            encounterCooldown = 120;
-        }
+        applyBattleActionResult(res, slotIdx);
         broadcastBattleUpdate(battleEngine.getBattleState());
         updateAll();
+        scheduleAutoBattleMove();
     }
 });
 
 ipcMain.on('action-battle-auto-move', () => {
     if (battleEngine && companion) {
-        const slotIdx = (battleEngine.activeBattle && battleEngine.activeBattle.player) ? battleEngine.activeBattle.player.slotIndex : null;
-        const res = battleEngine.executeAutoMove();
-        if (res && res.inCatchPhase) {
-            companion.ensureRescuePokeballs();
-        } else if (res && res.expReward) {
-            companion.awardBattleExp(res.expReward, slotIdx);
-        }
-        if (battleEngine.activeBattle && battleEngine.activeBattle.isOver) {
-            companion.reviveTeam();
-            encounterCooldown = 120;
-        }
-        broadcastBattleUpdate(battleEngine.getBattleState());
-        updateAll();
+        clearAutoBattleTimer();
+        executeAutoBattleTurn();
     }
 });
 
@@ -968,6 +1046,12 @@ ipcMain.on('action-battle-item', (_event, itemType) => {
 
 ipcMain.on('action-battle-catch', (_event, ballType = 'poke-ball') => {
     if (battleEngine && companion) {
+        clearAutoBattleTimer();
+        if (!battleEngine.isInBattle() || !battleEngine.activeBattle.inCatchPhase) {
+            broadcastBattleUpdate(battleEngine.getBattleState());
+            return;
+        }
+
         let hasBall = false;
 
         const bLower = (ballType || '').toLowerCase();
@@ -1009,23 +1093,16 @@ ipcMain.on('action-battle-catch', (_event, ballType = 'poke-ball') => {
     }
 });
 
-ipcMain.on('action-start-battle', (_event, slotIndex = null, forcedSpeciesId = null) => {
-    if (companion && battleEngine) {
-        const leadSlot = (slotIndex !== null && slotIndex !== undefined) ? slotIndex : companion.state.leadIndex;
-        const leader = companion.state.team[leadSlot];
-        if (leader && !leader.isEgg) {
-            battleEngine.startBattle(leader, leadSlot, forcedSpeciesId, companion.state.team);
-            broadcastBattleUpdate(battleEngine.getBattleState());
-            updateAll();
-        }
-    }
-});
-
 ipcMain.on('action-battle-finish-catch', () => {
     if (battleEngine && companion) {
+        clearAutoBattleTimer();
         const slotIdx = (battleEngine.activeBattle && battleEngine.activeBattle.player) ? battleEngine.activeBattle.player.slotIndex : null;
         const res = battleEngine.finishCatchPhase();
-        if (res && res.expReward) {
+        if (!res || !res.success) {
+            broadcastBattleUpdate(battleEngine.getBattleState());
+            return;
+        }
+        if (res.expReward) {
             companion.awardBattleExp(res.expReward, slotIdx);
         }
         companion.reviveTeam();
@@ -1090,7 +1167,11 @@ ipcMain.on('action-toggle-audio-setting', () => {
 ipcMain.on('action-repair-team', () => {
     if (companion) {
         companion.repairTeam();
+        companion.reviveTeam();
         updateAll();
+        if (battleEngine && battleEngine.isInBattle()) {
+            broadcastBattleUpdate(battleEngine.getBattleState());
+        }
     }
 });
 
@@ -1166,30 +1247,19 @@ ipcMain.on('action-open-external-url', (_event, url) => {
     }
 });
 
-ipcMain.on('action-battle-finish-catch', () => {
-    if (battleEngine && companion) {
-        const slotIdx = (battleEngine.activeBattle && battleEngine.activeBattle.player) ? battleEngine.activeBattle.player.slotIndex : null;
-        const res = battleEngine.finishCatchPhase();
-        if (res && res.expReward) {
-            companion.awardBattleExp(res.expReward, slotIdx);
-        }
-        companion.reviveTeam();
-        encounterCooldown = 120;
-        broadcastBattleUpdate(battleEngine.getBattleState());
-        updateAll();
-    }
-});
-
 ipcMain.on('action-battle-switch', (_event, slotIndex) => {
     if (battleEngine && companion) {
+        clearAutoBattleTimer();
         const newMember = companion.state.team[slotIndex];
         battleEngine.switchPlayerBattler(newMember, slotIndex);
         broadcastBattleUpdate(battleEngine.getBattleState());
+        scheduleAutoBattleMove();
     }
 });
 
 ipcMain.on('action-battle-run', () => {
     if (battleEngine && companion) {
+        clearAutoBattleTimer();
         battleEngine.run();
         companion.reviveTeam();
         encounterCooldown = 120;
@@ -1208,51 +1278,22 @@ ipcMain.on('action-toggle-encounters', () => {
 ipcMain.on('action-toggle-auto-battle', () => {
     if (companion) {
         const isAuto = companion.toggleAutoBattle();
+        if (isAuto) scheduleAutoBattleMove();
+        else clearAutoBattleTimer();
         updateAll();
-        if (isAuto && battleEngine && battleEngine.isInBattle()) {
-            setTimeout(() => {
-                if (battleEngine.isInBattle() && !battleEngine.activeBattle.inCatchPhase) {
-                    const slotIdx = (battleEngine.activeBattle && battleEngine.activeBattle.player) ? battleEngine.activeBattle.player.slotIndex : null;
-                    const res = battleEngine.executeAutoMove();
-                    if (res && res.inCatchPhase) {
-                        companion.ensureRescuePokeballs();
-                    } else if (res && res.expReward) {
-                        companion.awardBattleExp(res.expReward, slotIdx);
-                    }
-                    if (battleEngine.activeBattle && battleEngine.activeBattle.isOver) {
-                        companion.reviveTeam();
-                        encounterCooldown = 120;
-                    }
-                    broadcastBattleUpdate(battleEngine.getBattleState());
-                    updateAll();
-                }
-            }, 250);
-        }
     }
 });
 
 ipcMain.on('action-toggle-battle-speed', () => {
     if (companion) {
         companion.toggleBattleSpeed();
+        scheduleAutoBattleMove();
         updateAll();
     }
 });
 
 ipcMain.on('action-toggle-battle-window', () => {
     toggleBattleWindow();
-});
-
-ipcMain.on('action-repair-team', () => {
-    if (companion) {
-        companion.reviveTeam();
-        companion.state.team.forEach(m => sanitizeMember(m));
-        companion.state.box.forEach(m => sanitizeMember(m));
-        companion.saveState();
-        updateAll();
-        if (battleEngine && battleEngine.isInBattle()) {
-            broadcastBattleUpdate(battleEngine.getBattleState());
-        }
-    }
 });
 
 function broadcastBattleUpdate(state) {
@@ -1273,6 +1314,7 @@ function ensureBattleWindow() {
             battleEngine.startBattle(leader, leadSlot, null, companion.state.team);
         }
     }
+    scheduleAutoBattleMove();
 
     if (battleWindow && !battleWindow.isDestroyed()) {
         if (battleWindow.isMinimized()) battleWindow.restore();
@@ -1391,6 +1433,7 @@ app.whenReady().then(() => {
     log('Electron app is ready');
     const userDataPath = app.getPath('userData');
     log(`User data path: ${userDataPath}`);
+    writeProcessPid(userDataPath);
 
     scanner = new TokenScanner();
     companion = new CompanionManager(userDataPath);
@@ -1411,6 +1454,8 @@ app.whenReady().then(() => {
 });
 
 app.on('will-quit', () => {
+    clearAutoBattleTimer();
+    removeProcessPid();
     try {
         globalShortcut.unregisterAll();
     } catch (e) {}

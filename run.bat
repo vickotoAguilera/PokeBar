@@ -12,11 +12,11 @@ if exist "node_modules\.bin\electron.cmd" goto run_electron_cmd
 goto run_npm
 
 :run_electron_cmd
-call "node_modules\.bin\electron.cmd" .
+call "node_modules\.bin\electron.cmd" . --poketokenbar-app=PokeTokenBar-Windows
 goto check_exit
 
 :run_npm
-call npm start
+call npm start -- --poketokenbar-app=PokeTokenBar-Windows
 goto check_exit
 
 :check_exit

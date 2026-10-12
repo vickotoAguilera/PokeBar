@@ -597,6 +597,10 @@ function resolveStage(line, member) {
     return line.stages[member.stageIndex] || line.stages[0];
 }
 
+function getDexNumber(entry) {
+    return typeof entry === 'number' ? entry : (entry && entry.dexNumber);
+}
+
 // Helper to ensure member has active and learned moves without duplicates
 function ensureMemberMoves(member, level = 5) {
     if (!member || member.isEgg) return;
@@ -737,7 +741,7 @@ class CompanionManager {
                     ? EVOLUTION_LINES[member.lineIndex]
                     : null;
                 const stage = resolveStage(line, member);
-                const exists = this.state.dex.some(d => d.dexNumber === stage.id);
+                const exists = this.state.dex.some(d => getDexNumber(d) === stage.id);
                 if (!exists) {
                     this.state.dex.push({
                         dexNumber: stage.id,
@@ -777,6 +781,7 @@ class CompanionManager {
                     if (loaded.settings.skipVsDialog === undefined) loaded.settings.skipVsDialog = false;
                     if (loaded.settings.useSpecialBalls === undefined) loaded.settings.useSpecialBalls = false;
                     if (loaded.settings.soundEnabled === undefined) loaded.settings.soundEnabled = true;
+                    if (loaded.settings.hideOnFullscreen === undefined) loaded.settings.hideOnFullscreen = false;
                     if (!loaded.mastery || typeof loaded.mastery !== 'object') loaded.mastery = {};
 
                     // Never allow a blocking modal to hijack the startup card
@@ -836,7 +841,8 @@ class CompanionManager {
                 battleSpeed: 1,
                 skipVsDialog: false,
                 useSpecialBalls: false,
-                soundEnabled: true
+                soundEnabled: true,
+                hideOnFullscreen: false
             },
             dex: [],
             pendingBranchEvolution: null,
@@ -846,10 +852,23 @@ class CompanionManager {
     }
 
     saveState() {
+        const tempFile = `${this.stateFile}.tmp`;
         try {
             fs.mkdirSync(path.dirname(this.stateFile), { recursive: true });
-            fs.writeFileSync(this.stateFile, JSON.stringify(this.state, null, 2), 'utf8');
-        } catch (e) {}
+            const data = JSON.stringify(this.state, null, 2);
+            const fd = fs.openSync(tempFile, 'w');
+            try {
+                fs.writeFileSync(fd, data, 'utf8');
+                fs.fsyncSync(fd);
+            } finally {
+                fs.closeSync(fd);
+            }
+            fs.renameSync(tempFile, this.stateFile);
+        } catch (e) {
+            try {
+                if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
+            } catch (_cleanupError) {}
+        }
     }
 
     setLead(index) {
@@ -870,7 +889,7 @@ class CompanionManager {
 
     registerToDex(stage, line, isShiny = false, nature = 'Hardy') {
         if (!Array.isArray(this.state.dex)) this.state.dex = [];
-        const existing = this.state.dex.find(d => d.dexNumber === stage.id);
+        const existing = this.state.dex.find(d => getDexNumber(d) === stage.id);
         if (existing) {
             if (isShiny && !existing.isShiny) {
                 existing.isShiny = true;
@@ -893,6 +912,11 @@ class CompanionManager {
 
     // Token tick: EXP Share across team (100% Leader/Eggs, 50% Teammates)
     updateWithTokens(todayTokens, totalTokens) {
+        // A failed scan is not the same as a valid zero-token reading.
+        if (!Number.isFinite(todayTokens) || !Number.isFinite(totalTokens)) {
+            return this.getPublicView(0, Number.isFinite(this.state.lastSeenTotalTokens) ? this.state.lastSeenTotalTokens : 0);
+        }
+
         if (this.state.baselineTokens === null) {
             this.state.baselineTokens = totalTokens;
             this.state.lastSeenTotalTokens = totalTokens;
@@ -1076,7 +1100,7 @@ class CompanionManager {
 
     hatchSlot(slotIndex, forcedLineIndex = null) {
         const slot = this.state.team[slotIndex];
-        if (!slot) return;
+        if (!slot || !slot.isEgg) return false;
 
         let candidates = EVOLUTION_LINES;
         if (slot.eggTier === 'uncommon') {
@@ -1116,6 +1140,7 @@ class CompanionManager {
         this.registerToDex(line.stages[0], line, isShiny, nature);
         this.state.celebration = 'hatch';
         this.saveState();
+        return true;
     }
 
     graduateSlot(slotIndex, line) {
@@ -1420,9 +1445,11 @@ class CompanionManager {
 
     // RECRUIT FROM POKÉDEX: Transfer or deploy discovered Pokémon into party
     recruitFromDex(speciesId, targetSlotIndex = null) {
-        if (!Array.isArray(this.state.dex) || !this.state.dex.includes(speciesId)) {
+        if (!Array.isArray(this.state.dex)) {
             return { success: false, msg: 'Pokémon no descubierto en la Pokédex' };
         }
+        const registeredEntry = this.state.dex.find(entry => getDexNumber(entry) === speciesId);
+        if (!registeredEntry) return { success: false, msg: 'Pokémon no descubierto en la Pokédex' };
         const dexEntry = POKEDEX_ALL.find(p => p.id === speciesId) || { id: speciesId, name: 'Pokémon' };
         const foundLineIndex = EVOLUTION_LINES.findIndex(l => l.stages.some(s => s.id === speciesId));
         const line = foundLineIndex >= 0 ? EVOLUTION_LINES[foundLineIndex] : null;
@@ -1441,8 +1468,8 @@ class CompanionManager {
             lineIndex: foundLineIndex,
             stageIndex: Math.max(0, stageIndex),
             usedAtStage: 0,
-            isShiny: false,
-            nature: 'Docile',
+            isShiny: !!(registeredEntry && typeof registeredEntry === 'object' && registeredEntry.isShiny),
+            nature: (registeredEntry && typeof registeredEntry === 'object' && registeredEntry.nature) || 'Docile',
             name: dexEntry.name,
             speciesId: dexEntry.id,
             level: 5,
@@ -1578,8 +1605,9 @@ class CompanionManager {
 
     deployFromDex(dexNumber, targetSlotIndex = null) {
         if (!Array.isArray(this.state.dex)) return { success: false, msg: 'Pokédex vacía' };
-        const dexEntry = this.state.dex.find(d => d.dexNumber === dexNumber);
-        if (!dexEntry) return { success: false, msg: 'Pokémon no encontrado en Pokédex' };
+        const registeredEntry = this.state.dex.find(d => getDexNumber(d) === dexNumber);
+        if (!registeredEntry) return { success: false, msg: 'Pokémon no encontrado en Pokédex' };
+        const dexData = registeredEntry && typeof registeredEntry === 'object' ? registeredEntry : {};
 
         // 1. Prevent clones in active team!
         const inTeam = this.state.team.some(m => !m.isEgg && m.speciesId === dexNumber);
@@ -1631,8 +1659,8 @@ class CompanionManager {
             lineIndex: foundLineIndex,
             stageIndex: foundStageIndex,
             usedAtStage: 0,
-            isShiny: !!dexEntry.isShiny,
-            nature: dexEntry.nature || 'Hardy',
+            isShiny: !!dexData.isShiny,
+            nature: dexData.nature || 'Hardy',
             name: stage.name,
             speciesId: stage.id,
             level: bounds.startLevel
@@ -1863,6 +1891,9 @@ class CompanionManager {
 
         const spendableTokens = Math.max(0, totalTokens + (this.state.bonusMoney || 0) - (this.state.spentTokens || 0));
 
+        const publicEvent = eventOccurred || this.state.celebration || null;
+        this.state.celebration = null;
+
         return {
             ...leaderView,
             leadIndex: this.state.leadIndex,
@@ -1889,7 +1920,7 @@ class CompanionManager {
             dex: this.state.dex,
             pendingBranchEvolution: this.state.pendingBranchEvolution,
             pendingMoveLearn: this.state.pendingMoveLearn,
-            eventOccurred: eventOccurred || this.state.celebration
+            eventOccurred: publicEvent
         };
     }
 
@@ -2030,7 +2061,8 @@ class CompanionManager {
     }
 
     buyItem(itemKey, totalTokens) {
-        const spendable = Math.max(0, totalTokens - this.state.spentTokens);
+        const availableTokens = Number.isFinite(totalTokens) ? totalTokens : 0;
+        const spendable = Math.max(0, availableTokens + (this.state.bonusMoney || 0) - (this.state.spentTokens || 0));
 
         const PRICES = {
             rareCandy:    500000000,

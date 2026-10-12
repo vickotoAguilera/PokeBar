@@ -242,7 +242,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let pendingSwapAction = null;
     let latestCompanionData = null;
     let lastBattleState = null;
-    let autoBattleTimer = null;
     let currentDexRegion = 'kanto';
     let currentGbaFilter = 'all';
     let currentFilteredBoxItems = [];
@@ -823,8 +822,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             lastSettingInteraction = Date.now();
             const newVal = input.checked;
-            window.api.updateSetting(key, newVal);
-            if (toggleAction) toggleAction();
+            if (toggleAction) toggleAction(newVal);
+            else window.api.updateSetting(key, newVal);
         }
 
         input.addEventListener('change', (e) => {
@@ -845,8 +844,8 @@ document.addEventListener('DOMContentLoaded', () => {
     wireSettingRow('rowSettingSkipVs', 'settingSkipVsSwitch', 'skipVsDialog', () => window.api.toggleSkipVsDialog());
     wireSettingRow('rowSettingSpecialBalls', 'settingSpecialBallsSwitch', 'useSpecialBalls', () => window.api.toggleUseSpecialBalls());
     wireSettingRow('rowSettingAudio', 'settingAudioSwitch', 'soundEnabled', () => window.api.toggleAudioSetting());
-    wireSettingRow('rowSettingHideOnFullscreen', 'settingHideOnFullscreenSwitch', 'hideOnFullscreen', () => {
-        if (window.api.toggleHideOnFullscreen) window.api.toggleHideOnFullscreen();
+    wireSettingRow('rowSettingHideOnFullscreen', 'settingHideOnFullscreenSwitch', 'hideOnFullscreen', (enabled) => {
+        if (window.api.toggleHideOnFullscreen) window.api.toggleHideOnFullscreen(enabled);
     });
 
     if (btnRepairTeam) {
@@ -891,7 +890,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 latestUpdateInfo = res;
 
                 if (res.hasUpdate) {
-                    if (updateStatusText) updateStatusText.innerHTML = `<span style="color:#38bdf8; font-weight:800;">¡Disponible ${res.remoteVersion}!</span>`;
+                    if (updateStatusText) updateStatusText.textContent = `¡Disponible ${res.remoteVersion}!`;
                     if (updateNoticeBanner && updateNoticeText) {
                         updateNoticeText.innerText = `¡Nueva versión ${res.remoteVersion} disponible!`;
                         updateNoticeBanner.style.display = 'flex';
@@ -2038,21 +2037,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function scheduleEmbeddedAutoBattle() {
-        clearTimeout(autoBattleTimer);
-        const isAuto = (latestCompanionData && latestCompanionData.pokemon && latestCompanionData.pokemon.settings && latestCompanionData.pokemon.settings.autoBattle) || (btnBattleAutoToggle && btnBattleAutoToggle.classList.contains('active'));
-        if (!isAuto) return;
-        if (!lastBattleState || lastBattleState.isOver || lastBattleState.inCatchPhase) return;
-
-        const speed = (latestCompanionData && latestCompanionData.pokemon && latestCompanionData.pokemon.settings && latestCompanionData.pokemon.settings.battleSpeed) || (btnBattleSpeedToggle && btnBattleSpeedToggle.innerText.includes('x2') ? 2 : 1);
-        const delay = speed === 2 ? 350 : 750;
-        autoBattleTimer = setTimeout(() => {
-            if (lastBattleState && !lastBattleState.isOver && !lastBattleState.inCatchPhase) {
-                window.api.battleAutoMove();
-            }
-        }, delay);
-    }
-
     if (btnBattleSpeedToggle) {
         btnBattleSpeedToggle.addEventListener('click', () => {
             const currentSpeed = btnBattleSpeedToggle.innerText.includes('x2') ? 2 : 1;
@@ -2064,7 +2048,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 latestCompanionData.pokemon.settings.battleSpeed = newSpeed;
             }
             window.api.toggleBattleSpeed();
-            scheduleEmbeddedAutoBattle();
         });
     }
 
@@ -2079,7 +2062,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 latestCompanionData.pokemon.settings.autoBattle = nowAuto;
             }
             window.api.toggleAutoBattle();
-            scheduleEmbeddedAutoBattle();
         });
     }
 
@@ -2168,7 +2150,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const cardBattleStatusAlert = document.getElementById('cardBattleStatusAlert');
             if (!battle || battle.isOver) {
-                clearTimeout(autoBattleTimer);
                 if (cardBattleStatusAlert) cardBattleStatusAlert.style.display = 'none';
                 if (battleActiveView) battleActiveView.style.display = 'none';
                 if (battleInactiveView) battleInactiveView.style.display = 'flex';
@@ -2220,7 +2201,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const inv = (latestCompanionData && latestCompanionData.pokemon && latestCompanionData.pokemon.inventory) || {};
 
             if (battle.inCatchPhase) {
-                clearTimeout(autoBattleTimer);
                 if (battleMovesSection) battleMovesSection.style.display = 'none';
                 if (battleCatchSection) battleCatchSection.style.display = 'block';
 
@@ -2287,8 +2267,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 }
 
-                // Auto Battle Trigger
-                scheduleEmbeddedAutoBattle();
             }
         });
     }

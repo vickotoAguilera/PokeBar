@@ -125,6 +125,7 @@ class TokenScanner {
         let todayTokens = 0;
         let totalCalls = 0;
         let todayCalls = 0;
+        const scanErrors = [];
 
         for (const dir of this.roots) {
             if (!fs.existsSync(dir)) continue;
@@ -132,6 +133,7 @@ class TokenScanner {
             try {
                 files = fs.readdirSync(dir).filter(f => f.endsWith('.db'));
             } catch (e) {
+                scanErrors.push(e);
                 continue;
             }
 
@@ -206,16 +208,21 @@ class TokenScanner {
                     totalCalls += dbTotalCalls;
                     todayCalls += dbTodayCalls;
                 } catch (e) {
-                    // Ignore transient lock or read errors
+                    scanErrors.push(e);
                 }
             }
         }
 
+        const hasScanError = scanErrors.length > 0;
+
         return {
-            totalTokens,
-            todayTokens,
-            totalCalls,
-            todayCalls,
+            totalTokens: hasScanError ? null : totalTokens,
+            todayTokens: hasScanError ? null : todayTokens,
+            totalCalls: hasScanError ? null : totalCalls,
+            todayCalls: hasScanError ? null : todayCalls,
+            scannerError: hasScanError,
+            error: hasScanError ? scanErrors[0].message : null,
+            errorCount: scanErrors.length,
             timestamp: Date.now()
         };
     }

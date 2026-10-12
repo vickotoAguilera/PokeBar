@@ -1,9 +1,7 @@
 @echo off
 cd /d "%~dp0"
 
-:: Cerrar cualquier instancia previa colgada para recargar el codigo actualizado
-taskkill /F /IM electron.exe >nul 2>&1
-ping 127.0.0.1 -n 2 >nul
+:: Electron mantiene una unica instancia; no terminar procesos Electron ajenos.
 
 :: Si existe PokeTokenBar.vbs, ejecutarlo para 0 consolas visibles
 if exist "PokeTokenBar.vbs" (
@@ -13,9 +11,9 @@ if exist "PokeTokenBar.vbs" (
 
 :: Alternativa directa si no estuviese el vbs
 if exist "node_modules\electron\dist\electron.exe" (
-    start "" "node_modules\electron\dist\electron.exe" .
+    start "" "node_modules\electron\dist\electron.exe" . --poketokenbar-app=PokeTokenBar-Windows
     exit /b 0
 )
 
-start "" /b node "node_modules\electron\cli.js" .
+start "" /b node "node_modules\electron\cli.js" . --poketokenbar-app=PokeTokenBar-Windows
 exit /b 0

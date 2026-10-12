@@ -938,27 +938,11 @@
 
         let companionData = null;
         let lastBattle = null;
-        let autoTimer = null;
         let isThrowingBall = false;
 
         btnClose.addEventListener('click', () => {
             window.api.toggleBattleWindow();
         });
-
-        function checkAndScheduleAutoMove() {
-            clearTimeout(autoTimer);
-            const isAuto = (companionData && companionData.pokemon && companionData.pokemon.settings && companionData.pokemon.settings.autoBattle) || btnAuto.classList.contains('active');
-            if (!isAuto) return;
-            if (!lastBattle || lastBattle.isOver || lastBattle.inCatchPhase) return;
-
-            const speed = (companionData && companionData.pokemon && companionData.pokemon.settings && companionData.pokemon.settings.battleSpeed) || (btnSpeed.innerText.includes('x2') ? 2 : 1);
-            const delay = speed === 2 ? 350 : 750;
-            autoTimer = setTimeout(() => {
-                if (lastBattle && !lastBattle.isOver && !lastBattle.inCatchPhase) {
-                    window.api.battleAutoMove();
-                }
-            }, delay);
-        }
 
         btnSpeed.addEventListener('click', () => {
             const currentSpeed = btnSpeed.innerText.includes('x2') ? 2 : 1;
@@ -970,7 +954,6 @@
                 companionData.pokemon.settings.battleSpeed = newSpeed;
             }
             window.api.toggleBattleSpeed();
-            checkAndScheduleAutoMove();
         });
 
         btnAuto.addEventListener('click', () => {
@@ -983,7 +966,6 @@
                 companionData.pokemon.settings.autoBattle = nowAuto;
             }
             window.api.toggleAutoBattle();
-            checkAndScheduleAutoMove();
         });
 
         btnPotion.addEventListener('click', () => {
@@ -1147,8 +1129,6 @@
                     refreshCatchConsole(lastBattle);
                 }
 
-                // Check and trigger auto move if enabled!
-                checkAndScheduleAutoMove();
             });
         }
 
@@ -1199,7 +1179,6 @@
 
                 // Handle Over / Ended Battles
                 if (battle.isOver) {
-                    clearTimeout(autoTimer);
                     rivalSprite.classList.remove('ball-shaking');
 
                     if (battle.result === 'caught') {
@@ -1304,7 +1283,6 @@
                 logTicker.title = (battle.recentLog || []).join('\n');
 
                 if (battle.inCatchPhase) {
-                    clearTimeout(autoTimer);
                     movesSection.style.display = 'none';
                     catchSection.style.display = 'flex';
                     btnBackToMoves.style.display = 'none'; // Cannot go back to moves if wild HP is 0
@@ -1342,8 +1320,6 @@
                         movesGrid.appendChild(btn);
                     });
 
-                    // Auto Battle
-                    checkAndScheduleAutoMove();
                 }
             });
         }
